@@ -13,6 +13,12 @@
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
+/* Additional tonal variables */
+:root {
+  --color-offwhite: #F5F1E9; /* input background */
+  --color-input-border: #E7E2D8;
+}
+
 html,
 body {
   margin: 0;
@@ -105,6 +111,23 @@ body {
 /* ensure decorative elements don't affect layout */
 .left-panel img { position: relative; z-index: 2; }
 .left-panel > * { position: relative; z-index: 3; }
+
+/* page background helper (right panel will show this behind the card) */
+.page-bg { background: var(--color-cream); }
+
+/* off-white input backgrounds inside white cards */
+.bg-offwhite { background: var(--color-offwhite); }
+.input-offwhite {
+  background: var(--color-offwhite);
+  border: 1px solid var(--color-input-border);
+  transition: background 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.input-offwhite:focus {
+  background: #ffffff;
+  border-color: var(--color-sage);
+  box-shadow: 0 8px 28px rgba(74,124,89,0.12);
+  outline: none;
+}
 
 
 /* Entrance and floating animations */

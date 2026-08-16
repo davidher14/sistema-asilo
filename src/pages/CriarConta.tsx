@@ -72,12 +72,14 @@ export default function CriarConta() {
   return (
     <div className="flex min-h-screen page-bg">
       {/* Painel esquerdo (foto abaixo do logo) */}
-      <div className="hidden w-1/2 lg:flex flex-col justify-between p-10 left-panel">
-        <div className="flex flex-col items-center justify-start mt-4">
-          <div className="rounded-full bg-white p-0.5 drop-shadow-lg flex items-center justify-center">
-            <img src={instLogo} alt="Logo da instituição" className="w-44 h-auto object-contain" />
+      <div className="hidden w-1/2 lg:flex flex-col p-10 left-panel">
+        <div className="flex-1 flex items-center">
+          <div className="flex flex-col items-center justify-center gap-12 w-full">
+            <div className="rounded-full bg-white p-1 drop-shadow-lg flex items-center justify-center">
+              <img src={instLogo} alt="Logo da instituição" className="w-64 h-auto object-contain" />
+            </div>
+            <img src={bgJap} alt="Foto" className="w-64 md:w-72 rounded-xl object-cover shadow-lg" />
           </div>
-          <img src={bgJap} alt="Foto" className="w-[28rem] rounded-xl object-cover shadow-lg mt-6" />
         </div>
 
         <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>

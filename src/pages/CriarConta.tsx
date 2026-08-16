@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import instLogo from "../../inst logo.png";
+import bgJap from "../assets/bg-japones2.jpg";
 
 export default function CriarConta() {
   const navigate = useNavigate();
@@ -26,9 +27,14 @@ export default function CriarConta() {
   
 
   return (
-    <div className="flex min-h-screen">
-      {/* Painel esquerdo */}
-      <div className="hidden w-1/2 flex-col justify-between bg-white p-10 text-[#1B2A83] lg:flex">
+    <div className="flex min-h-screen bg-white">
+      {/* Painel esquerdo (foto) */}
+      <div
+        className="hidden w-1/2 lg:flex flex-col justify-between p-10 text-[#1B2A83] relative"
+        style={{ backgroundImage: `url(${bgJap})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      >
+        <div className="absolute inset-0 bg-white/60" />
+        <div className="relative z-10 flex items-center gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#00B4F0] text-white shadow-md">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -53,8 +59,8 @@ export default function CriarConta() {
       </div>
 
       {/* Formulário */}
-      <div className="flex w-full items-center justify-center bg-gradient-to-br from-[#00B4F0] via-[#1E63C6] to-[#1B2A83] p-6 lg:w-1/2">
-        <div className="w-full max-w-sm card-3d enter">
+      <div className="flex w-full items-center justify-center p-6 lg:w-1/2">
+        <div className="w-full max-w-sm card-3d enter border border-[#e6f4ff]">
           <h1 className="text-2xl font-bold text-gray-900">Criar conta</h1>
           <p className="mt-1 text-sm text-gray-500">Preencha os dados abaixo para começar a usar o sistema.</p>
 

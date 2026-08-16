@@ -1,1 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+.DS_Store
+.vscode/
+# npm
+npm-debug.log*
 node_modules/dist/.env.env.*

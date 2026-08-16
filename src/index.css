@@ -55,17 +55,11 @@ body {
 .left-panel {
   position: relative;
   overflow: hidden;
-  /* Base gradient */
+  /* Use the generated high-res SVG washi background (9:16) */
   background-color: var(--color-indigo);
-  background-image:
-    linear-gradient(180deg, var(--color-indigo) 0%, #12193F 100%),
-    /* subtle gold accent corner */
-    radial-gradient(360px at 88% 92%, rgba(201,162,39,0.07) 0%, rgba(201,162,39,0.03) 30%, transparent 50%),
-    /* faint washi linen crosshatch */
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 6px),
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 6px);
-  background-blend-mode: normal, screen, overlay, overlay;
-  background-size: auto, cover, 6px 6px, 6px 6px;
+  background-image: url('/src/assets/washi-9x16.svg');
+  background-size: cover;
+  background-position: center right;
 }
 
 .left-panel::after {

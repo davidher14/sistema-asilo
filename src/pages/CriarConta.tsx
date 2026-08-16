@@ -47,8 +47,8 @@ export default function CriarConta() {
         </div>
 
         <div className="flex flex-col items-center justify-start pt-2">
-          <img src={instLogo} alt="Logo da instituição" className="w-44 h-auto object-contain mb-1 -mt-6 drop-shadow-lg" />
-          <img src={bgJap} alt="Foto" className="w-96 rounded-xl object-cover shadow-lg mt-4" />
+          <img src={instLogo} alt="Logo da instituição" className="w-56 h-auto object-contain mb-1 -mt-8 drop-shadow-lg" />
+          <img src={bgJap} alt="Foto" className="w-[28rem] rounded-xl object-cover shadow-lg mt-4" />
         </div>
 
         <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>
@@ -56,7 +56,7 @@ export default function CriarConta() {
 
       {/* Formulário */}
       <div className="flex w-full items-center justify-center p-6 lg:w-1/2">
-        <div className="w-full max-w-sm card-3d enter border border-[#e6f4ff]">
+        <div className="w-full max-w-lg card-3d enter border border-[#e6f4ff] p-8 lg:p-10">
           <h1 className="text-2xl font-bold text-gray-900">Criar conta</h1>
           <p className="mt-1 text-sm text-gray-500">Preencha os dados abaixo para começar a usar o sistema.</p>
 

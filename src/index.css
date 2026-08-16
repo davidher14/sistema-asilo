@@ -109,7 +109,7 @@ body {
 
 /* Entrance and floating animations */
 @keyframes fadeUp {
-  0% { opacity: 0; transform: translateY(10px); }
+  0% { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
@@ -120,7 +120,31 @@ body {
 }
 
 .enter {
-  animation: fadeUp 900ms cubic-bezier(.2,.9,.2,1) both;
+  animation: fadeUp 600ms ease-out both;
+}
+
+/* subtle breathing shadow for cards */
+@keyframes breathShadow {
+  0% {
+    box-shadow: 0 14px 30px rgba(27,37,89,0.06), 0 6px 18px rgba(27,37,89,0.04), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  100% {
+    box-shadow: 0 22px 44px rgba(27,37,89,0.09), 0 10px 26px rgba(27,37,89,0.06), inset 0 1px 0 rgba(255,255,255,0.72);
+  }
+}
+
+.card-breathe {
+  animation: breathShadow 6s ease-in-out infinite alternate;
+}
+
+/* button subtle scale on hover */
+.btn-scale {
+  transform: scale(0.97);
+  transition: transform 150ms ease;
+}
+.btn-scale:hover,
+.btn-scale:focus {
+  transform: scale(1);
 }
 
 .animate-float {

@@ -46,9 +46,9 @@ export default function CriarConta() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-start pt-6">
-          <img src={instLogo} alt="Logo da instituição" className="w-40 h-auto object-contain mb-2 drop-shadow-lg" />
-          <img src={bgJap} alt="Foto" className="w-80 rounded-xl object-cover shadow-lg mt-4" />
+        <div className="flex flex-col items-center justify-start pt-2">
+          <img src={instLogo} alt="Logo da instituição" className="w-44 h-auto object-contain mb-1 -mt-6 drop-shadow-lg" />
+          <img src={bgJap} alt="Foto" className="w-96 rounded-xl object-cover shadow-lg mt-4" />
         </div>
 
         <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>

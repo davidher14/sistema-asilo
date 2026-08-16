@@ -55,37 +55,35 @@ body {
 .left-panel {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--color-indigo) 0%, #12193F 100%);
-}
-
-.left-panel::before {
-  /* soft colored glows: sage top-left, gold bottom-right */
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+  /* Base gradient */
+  background-color: var(--color-indigo);
   background-image:
-    radial-gradient(350px at 8% 8%, rgba(74,124,89,0.22) 0%, rgba(74,124,89,0.08) 20%, transparent 40%),
-    radial-gradient(420px at 86% 92%, rgba(201,162,39,0.14) 0%, rgba(201,162,39,0.06) 22%, transparent 46%);
-  mix-blend-mode: screen;
-  filter: blur(30px) saturate(1.05);
+    linear-gradient(180deg, var(--color-indigo) 0%, #12193F 100%),
+    /* subtle gold accent corner */
+    radial-gradient(360px at 88% 92%, rgba(201,162,39,0.07) 0%, rgba(201,162,39,0.03) 30%, transparent 50%),
+    /* faint washi linen crosshatch */
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 6px);
+  background-blend-mode: normal, screen, overlay, overlay;
+  background-size: auto, cover, 6px 6px, 6px 6px;
 }
 
 .left-panel::after {
-  /* concentric thin translucent white rings in top-right */
+  /* refined concentric thin translucent white rings in top-right (even more subtle) */
   content: "";
   position: absolute;
   top: 6%;
   right: 6%;
-  width: 260px;
-  height: 260px;
+  width: 240px;
+  height: 240px;
   pointer-events: none;
   background-image:
-    radial-gradient(circle at 50% 50%, transparent calc(40%), rgba(255,255,255,0.10) calc(40% - 1px) calc(40% + 1px), transparent calc(40% + 1px)),
-    radial-gradient(circle at 50% 50%, transparent calc(60%), rgba(255,255,255,0.06) calc(60% - 1px) calc(60% + 1px), transparent calc(60% + 1px));
+    radial-gradient(circle at 50% 50%, transparent 0 calc(46%), rgba(255,255,255,0.09) calc(46% - 0.4%) calc(46% + 0.4%), transparent calc(46% + 0.4%)),
+    radial-gradient(circle at 50% 50%, transparent 0 calc(62%), rgba(255,255,255,0.05) calc(62% - 0.35%) calc(62% + 0.35%), transparent calc(62% + 0.35%));
   background-repeat: no-repeat;
-  transform: translateZ(0);
-  filter: blur(0.5px);
+  transform: rotate(-6deg) translateZ(0);
+  filter: blur(0.15px);
+  opacity: 0.9;
 }
 
 /* subtle grain texture using SVG turbulence */
@@ -93,10 +91,21 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.06;
+  opacity: 0.035;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200' viewBox='0 0 1200 1200'><filter id='f'><feTurbulence baseFrequency='0.9' numOctaves='1' stitchTiles='stitch' seed='2'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='0 1'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23f)' fill='%23ffffff'/></svg>");
+  /* even finer washi-like grain */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='2000' height='2000' viewBox='0 0 2000 2000'><filter id='h'><feTurbulence baseFrequency='0.015' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='0 1'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23h)' fill='%23ffffff'/></svg>");
   background-size: cover;
+}
+
+/* subtle vignette to focus center */
+.left-panel .vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(1200px at 50% 60%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.08) 60%, rgba(0,0,0,0.18) 100%);
+  mix-blend-mode: multiply;
+  opacity: 0.5;
 }
 
 /* ensure decorative elements don't affect layout */

@@ -47,7 +47,7 @@ export default function Login() {
 
       {/* Formulário */}
       <div className="flex w-full items-center justify-center p-6 lg:w-1/2">
-        <div className="w-full max-w-lg card-3d card-breathe enter border border-[#e6f4ff] p-8 lg:p-10">
+        <div className="w-full max-w-lg card-3d card-breathe card-enter border border-[#e6f4ff] p-8 lg:p-10">
           {/* Logo mobile */}
             <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1B2A83] text-white">

@@ -123,6 +123,17 @@ body {
   animation: fadeUp 600ms ease-out both;
 }
 
+/* Card entry: larger offset, single-run, slight delay */
+@keyframes cardEntry {
+  0% { opacity: 0; transform: translateY(36px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.card-enter {
+  animation: cardEntry 700ms ease-out 100ms both;
+  animation-iteration-count: 1;
+}
+
 /* subtle breathing shadow for cards */
 @keyframes breathShadow {
   0% {
@@ -153,5 +164,6 @@ body {
 
 /* Respect user preference for reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .enter, .animate-float { animation: none !important; }
+  .enter, .animate-float, .card-enter, .card-breathe { animation: none !important; }
+  .card-enter { opacity: 1 !important; transform: none !important; }
 }

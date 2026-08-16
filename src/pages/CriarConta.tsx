@@ -58,7 +58,7 @@ export default function CriarConta() {
 
       {/* Formulário */}
       <div className="flex w-full items-center justify-center p-6 lg:w-1/2">
-        <div className="w-full max-w-lg card-3d card-breathe enter border border-[#e6f4ff] p-8 lg:p-10">
+        <div className="w-full max-w-lg card-3d card-breathe card-enter border border-[#e6f4ff] p-8 lg:p-10">
           <h1 className="text-2xl font-bold text-gray-900">Criar conta</h1>
           <p className="mt-1 text-sm text-gray-500">Preencha os dados abaixo para começar a usar o sistema.</p>
 

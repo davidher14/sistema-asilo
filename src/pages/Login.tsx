@@ -36,7 +36,9 @@ export default function Login() {
         </div>
 
         <div className="flex flex-col items-center justify-start pt-2">
-          <img src={instLogo} alt="Logo da instituição" className="w-56 h-auto object-contain mb-1 -mt-8 drop-shadow-lg" />
+          <div className="rounded-full bg-white p-1 -mt-12 drop-shadow-lg flex items-center justify-center">
+            <img src={instLogo} alt="Logo da instituição" className="w-44 h-auto object-contain" />
+          </div>
           <img src={bgJap} alt="Foto" className="w-[28rem] rounded-xl object-cover shadow-lg mt-4" />
         </div>
 

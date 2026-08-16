@@ -28,15 +28,11 @@ export default function CriarConta() {
 
   return (
     <div className="flex min-h-screen bg-white">
-      {/* Painel esquerdo (foto) */}
-      <div
-        className="hidden w-1/2 lg:flex flex-col justify-between p-10 text-[#1B2A83] relative"
-        style={{ backgroundImage: `url(${bgJap})`, backgroundSize: "auto 60%", backgroundRepeat: "no-repeat", backgroundPosition: "center center" }}
-      >
-        <div className="absolute inset-0 bg-white/50" />
-        <div className="flex items-center gap-3 relative z-20">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#00B4F0] text-white shadow-md">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      {/* Painel esquerdo (foto abaixo do logo) */}
+      <div className="hidden w-1/2 lg:flex flex-col justify-between p-10 text-[#1B2A83]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#00B4F0] text-white shadow-md">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -50,11 +46,12 @@ export default function CriarConta() {
           </div>
         </div>
 
-        <div className="flex items-center justify-center relative z-20">
-          <img src={instLogo} alt="Logo da instituição" className="w-full max-w-lg object-contain mx-auto py-6 drop-shadow-lg animate-float enter" />
+        <div className="flex flex-col items-center justify-center">
+          <img src={instLogo} alt="Logo da instituição" className="w-28 h-auto object-contain mb-4 drop-shadow-lg" />
+          <img src={bgJap} alt="Foto" className="w-64 rounded-xl object-cover shadow-lg" />
         </div>
 
-        <p className="text-xs text-gray-500 relative z-10">v0.1 – Protótipo 2026</p>
+        <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>
       </div>
 
       {/* Formulário */}

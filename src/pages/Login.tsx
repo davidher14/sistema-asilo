@@ -60,6 +60,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen page-bg">
+
       {/* Painel esquerdo (foto abaixo do logo) */}
       <div className="hidden w-1/2 lg:flex flex-col justify-between p-10 left-panel">
         <div className="flex items-center gap-3">
@@ -89,7 +90,7 @@ export default function Login() {
       </div>
 
       {/* Formulário */}
-      <div ref={containerRef} className="flex w-full items-center justify-center p-6 lg:w-1/2">
+      <div ref={containerRef} className="flex w-full items-center justify-center p-6">
         <div ref={cardRef} className="w-full max-w-lg card-3d card-breathe card-enter parallax-card border border-[#e7e2d8] p-8 lg:p-10 bg-white">
           {/* Logo mobile */}
             <div className="mb-8 flex items-center gap-3 lg:hidden">

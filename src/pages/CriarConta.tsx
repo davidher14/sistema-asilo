@@ -31,11 +31,10 @@ export default function CriarConta() {
       {/* Painel esquerdo (foto) */}
       <div
         className="hidden w-1/2 lg:flex flex-col justify-between p-10 text-[#1B2A83] relative"
-        style={{ backgroundImage: `url(${bgJap})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        style={{ backgroundImage: `url(${bgJap})`, backgroundSize: "auto 60%", backgroundRepeat: "no-repeat", backgroundPosition: "center center" }}
       >
-        <div className="absolute inset-0 bg-white/60" />
-        <div className="relative z-10 flex items-center gap-3">
-        <div className="flex items-center gap-3">
+        <div className="absolute inset-0 bg-white/50" />
+        <div className="flex items-center gap-3 relative z-20">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#00B4F0] text-white shadow-md">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
@@ -51,11 +50,11 @@ export default function CriarConta() {
           </div>
         </div>
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center relative z-20">
           <img src={instLogo} alt="Logo da instituição" className="w-full max-w-lg object-contain mx-auto py-6 drop-shadow-lg animate-float enter" />
         </div>
 
-        <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>
+        <p className="text-xs text-gray-500 relative z-10">v0.1 – Protótipo 2026</p>
       </div>
 
       {/* Formulário */}

@@ -158,6 +158,16 @@ body {
   transform: scale(1);
 }
 
+/* parallax card interaction */
+.parallax-card {
+  transition: transform 260ms cubic-bezier(.2,.9,.2,1);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-card { transition: none !important; transform: none !important; }
+}
+
 .animate-float {
   animation: floatSlow 12s ease-in-out infinite;
 }

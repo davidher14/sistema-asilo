@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import instLogo from "../../inst logo.png";
@@ -12,6 +12,49 @@ export default function CriarConta() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   
   const [erro, setErro] = useState("");
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const card = cardRef.current;
+    if (!container || !card) return;
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq && mq.matches) return;
+
+    const maxX = 12; // px
+    const maxY = 8; // px
+    let rafId = 0;
+
+    function onMove(e: MouseEvent) {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const px = (x - rect.width / 2) / (rect.width / 2);
+      const py = (y - rect.height / 2) / (rect.height / 2);
+      const tx = Math.max(Math.min(px * maxX, maxX), -maxX);
+      const ty = Math.max(Math.min(py * maxY, maxY), -maxY);
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (card) card.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+      });
+    }
+
+    function onLeave() {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (card) card.style.transform = "";
+    }
+
+    container.addEventListener("mousemove", onMove);
+    container.addEventListener("mouseleave", onLeave);
+
+    return () => {
+      container.removeEventListener("mousemove", onMove);
+      container.removeEventListener("mouseleave", onLeave);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -57,8 +100,8 @@ export default function CriarConta() {
       </div>
 
       {/* Formulário */}
-      <div className="flex w-full items-center justify-center p-6 lg:w-1/2">
-        <div className="w-full max-w-lg card-3d card-breathe card-enter border border-[#e6f4ff] p-8 lg:p-10">
+      <div ref={containerRef} className="flex w-full items-center justify-center p-6 lg:w-1/2">
+        <div ref={cardRef} className="w-full max-w-lg card-3d card-breathe card-enter parallax-card border border-[#e6f4ff] p-8 lg:p-10">
           <h1 className="text-2xl font-bold text-gray-900">Criar conta</h1>
           <p className="mt-1 text-sm text-gray-500">Preencha os dados abaixo para começar a usar o sistema.</p>
 

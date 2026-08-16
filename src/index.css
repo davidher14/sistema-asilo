@@ -1,20 +1,16 @@
 @import "tailwindcss";
 
-@theme {
-  --color-brand-950: #0a1512;
-  --color-brand-900: #0f1f1a;
-  --color-brand-850: #12241d;
-  --color-brand-800: #16281f;
-  --color-brand-700: #1d3a2d;
-  --color-brand-600: #245040;
-  --color-brand-500: #2f6b56;
-  --color-mint-400: #34d399;
-  --color-mint-300: #6ee7b7;
-  --color-alert-500: #f97316;
-  --color-alert-400: #fb923c;
-  --color-alert-100: #ffedd5;
-  
---font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+:root {
+  /* Palette */
+  --color-indigo: #1B2559; /* anchor */
+  --color-sage: #4A7C59;
+  --color-gold: #C9A227;
+  --color-cream: #FAF8F3;
+  --color-ink: #20242E;
+
+  /* Typography */
+  --font-heading: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 html,
@@ -22,8 +18,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--font-sans);
-  background-color: #f5f6f7;
-  color: #1a202c;
+  background-color: var(--color-cream);
+  color: var(--color-ink);
 }
 
 * {
@@ -35,9 +31,24 @@ body {
   background: white;
   border-radius: 1rem; /* 16px */
   padding: 1.25rem; /* 20px */
-  box-shadow: 0 18px 40px rgba(2,6,23,0.14), 0 6px 18px rgba(2,6,23,0.08), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -8px 18px rgba(2,6,23,0.04);
-  border: 1px solid rgba(2,6,23,0.06);
+  box-shadow: 0 18px 40px rgba(27,37,89,0.08), 0 6px 18px rgba(27,37,89,0.06), inset 0 1px 0 rgba(255,255,255,0.7);
+  border: 1px solid rgba(27,37,89,0.06);
   overflow: visible;
+}
+
+/* Left panel background */
+.left-panel {
+  background: linear-gradient(180deg, var(--color-indigo) 0%, #111433 100%);
+  color: var(--color-cream);
+}
+
+.brand-heading {
+  font-family: var(--font-heading);
+  color: var(--color-cream);
+}
+
+.left-accent {
+  color: var(--color-gold);
 }
 
 /* Entrance and floating animations */

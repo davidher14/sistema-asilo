@@ -18,7 +18,7 @@ export default function Login() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* Painel esquerdo (foto abaixo do logo) */}
-      <div className="hidden w-1/2 lg:flex flex-col justify-between p-10 text-[#1B2A83]">
+      <div className="hidden w-1/2 lg:flex flex-col justify-between p-10 left-panel">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#00B4F0] text-white shadow-md">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -30,8 +30,8 @@ export default function Login() {
             </svg>
           </div>
           <div>
-            <p className="text-lg font-bold"> Wajunkai</p>
-            <p className="text-sm text-gray-500">Gestão de Estoque</p>
+            <p className="text-lg font-bold brand-heading"> Wajunkai</p>
+            <p className="text-sm text-gray-200">Gestão de Estoque</p>
           </div>
         </div>
 

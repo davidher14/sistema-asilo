@@ -78,7 +78,7 @@ export default function CriarConta() {
             <div className="rounded-full bg-white p-1 drop-shadow-lg flex items-center justify-center">
               <img src={instLogo} alt="Logo da instituição" className="w-64 h-auto object-contain" />
             </div>
-            <img src={bgJap} alt="Foto" className="w-64 md:w-72 rounded-xl object-cover shadow-lg" />
+            <img src={bgJap} alt="Foto" className="w-80 md:w-96 rounded-xl object-cover shadow-lg" />
           </div>
         </div>
 

@@ -73,27 +73,11 @@ export default function CriarConta() {
     <div className="flex min-h-screen page-bg">
       {/* Painel esquerdo (foto abaixo do logo) */}
       <div className="hidden w-1/2 lg:flex flex-col justify-between p-10 left-panel">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#00B4F0] text-white shadow-md">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-              />
-            </svg>
-          </div>
-          <div>
-            <p className="text-lg font-bold brand-heading"> Wajunkai</p>
-            <p className="text-sm text-gray-200">Gestão de Estoque</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center justify-start pt-2">
-          <div className="rounded-full bg-white p-0.5 -mt-12 drop-shadow-lg flex items-center justify-center">
+        <div className="flex flex-col items-center justify-start mt-4">
+          <div className="rounded-full bg-white p-0.5 drop-shadow-lg flex items-center justify-center">
             <img src={instLogo} alt="Logo da instituição" className="w-44 h-auto object-contain" />
           </div>
-          <img src={bgJap} alt="Foto" className="w-[28rem] rounded-xl object-cover shadow-lg mt-4" />
+          <img src={bgJap} alt="Foto" className="w-[28rem] rounded-xl object-cover shadow-lg mt-6" />
         </div>
 
         <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>

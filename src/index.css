@@ -61,11 +61,9 @@ body {
 .left-panel {
   position: relative;
   overflow: hidden;
-  /* Use the generated high-res SVG washi background (9:16) */
-  background-color: var(--color-indigo);
-  background-image: url('/src/assets/washi-9x16.svg');
-  background-size: cover;
-  background-position: center right;
+  /* Use a clean indigo gradient to avoid decorative gold accents from the SVG */
+  background: linear-gradient(180deg, var(--color-indigo) 0%, #111433 100%);
+  color: var(--color-cream);
 }
 
 .left-panel::after {

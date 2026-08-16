@@ -35,9 +35,9 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center">
-          <img src={instLogo} alt="Logo da instituição" className="w-28 h-auto object-contain mb-4 drop-shadow-lg" />
-          <img src={bgJap} alt="Foto" className="w-64 rounded-xl object-cover shadow-lg" />
+        <div className="flex flex-col items-center justify-start pt-6">
+          <img src={instLogo} alt="Logo da instituição" className="w-40 h-auto object-contain mb-2 drop-shadow-lg" />
+          <img src={bgJap} alt="Foto" className="w-80 rounded-xl object-cover shadow-lg mt-4" />
         </div>
 
         <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>

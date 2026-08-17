@@ -19,6 +19,13 @@
   --color-input-border: #E7E2D8;
 }
 
+/* Minimal media-element reset (replaces Tailwind preflight rule that set vertical-align). */
+img,svg,video,canvas,audio,iframe,embed,object {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 html,
 body {
   margin: 0;
@@ -57,6 +64,36 @@ body {
   color: var(--color-gold);
 }
 
+/* Brand signature block (top-left of left-panel) */
+.brand-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.brand-signature .name {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+}
+.brand-signature .underline {
+  width: 64px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-gold), var(--color-sage));
+}
+.brand-signature .subtitle {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+}
+
 /* Decorative left-panel background: gradient + glows + concentric rings + grain */
 .left-panel {
   position: relative;
@@ -66,45 +103,7 @@ body {
   color: var(--color-cream);
 }
 
-.left-panel::after {
-  /* refined concentric thin translucent white rings in top-right (even more subtle) */
-  content: "";
-  position: absolute;
-  top: 6%;
-  right: 6%;
-  width: 240px;
-  height: 240px;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 50% 50%, transparent 0 calc(46%), rgba(255,255,255,0.09) calc(46% - 0.4%) calc(46% + 0.4%), transparent calc(46% + 0.4%)),
-    radial-gradient(circle at 50% 50%, transparent 0 calc(62%), rgba(255,255,255,0.05) calc(62% - 0.35%) calc(62% + 0.35%), transparent calc(62% + 0.35%));
-  background-repeat: no-repeat;
-  transform: rotate(-6deg) translateZ(0);
-  filter: blur(0.15px);
-  opacity: 0.9;
-}
-
-/* subtle grain texture using SVG turbulence */
-.left-panel .grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
-  /* even finer washi-like grain */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='2000' height='2000' viewBox='0 0 2000 2000'><filter id='h'><feTurbulence baseFrequency='0.015' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='0 1'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23h)' fill='%23ffffff'/></svg>");
-  background-size: cover;
-}
-
-/* subtle vignette to focus center */
-.left-panel .vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(1200px at 50% 60%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.08) 60%, rgba(0,0,0,0.18) 100%);
-  mix-blend-mode: multiply;
-  opacity: 0.5;
-}
+/* No additional decorative overlays — left-panel uses a clean indigo gradient only */
 
 /* ensure decorative elements don't affect layout */
 .left-panel img { position: relative; z-index: 2; }

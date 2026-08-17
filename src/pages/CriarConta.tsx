@@ -46,12 +46,12 @@ export default function CriarConta() {
       if (card) card.style.transform = "";
     }
 
-    container.addEventListener("mousemove", onMove);
-    container.addEventListener("mouseleave", onLeave);
+    container?.addEventListener("mousemove", onMove);
+    container?.addEventListener("mouseleave", onLeave);
 
     return () => {
-      container.removeEventListener("mousemove", onMove);
-      container.removeEventListener("mouseleave", onLeave);
+      container?.removeEventListener("mousemove", onMove);
+      container?.removeEventListener("mouseleave", onLeave);
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
@@ -70,9 +70,14 @@ export default function CriarConta() {
   
 
   return (
-    <div className="flex min-h-screen page-bg">
+    <div className="flex flex-col lg:flex-row min-h-screen page-bg">
       {/* Painel esquerdo (foto abaixo do logo) */}
-      <div className="hidden w-1/2 lg:flex flex-col p-10 left-panel">
+      <div className="w-full lg:w-1/2 flex flex-col p-10 left-panel">
+        <div className="brand-signature">
+          <div className="name">Wajunkai</div>
+          <div className="underline" aria-hidden="true" />
+        </div>
+
         <div className="flex-1 flex items-center">
           <div className="flex flex-col items-center justify-center gap-12 w-full">
             <div className="rounded-full bg-white p-1 drop-shadow-lg flex items-center justify-center">
@@ -86,7 +91,7 @@ export default function CriarConta() {
       </div>
 
       {/* Formulário */}
-      <div ref={containerRef} className="flex w-full items-center justify-center p-6 lg:w-1/2">
+      <div ref={containerRef} className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-10">
         <div ref={cardRef} className="w-full max-w-lg card-3d card-breathe card-enter parallax-card border border-[#e7e2d8] p-8 lg:p-10 bg-white">
           <h1 className="text-2xl font-bold text-gray-900">Criar conta</h1>
           <p className="mt-1 text-sm text-gray-500">Preencha os dados abaixo para começar a usar o sistema.</p>

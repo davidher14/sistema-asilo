@@ -1,8 +1,8 @@
-import { useState, type FormEvent, useRef, useEffect } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
-import instLogo from "../../inst logo.png";
-import bgJap from "../assets/bg-japones2.jpg";
+import { perfilLabels } from "../data/mockData";
+import type { PerfilUsuario } from "../types";
 
 export default function CriarConta() {
   const navigate = useNavigate();
@@ -10,51 +10,8 @@ export default function CriarConta() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
-  
+  const [perfil, setPerfil] = useState<PerfilUsuario>("ENFERMAGEM");
   const [erro, setErro] = useState("");
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const cardRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const card = cardRef.current;
-    if (!container || !card) return;
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mq && mq.matches) return;
-
-    const maxX = 12; // px
-    const maxY = 8; // px
-    let rafId = 0;
-
-    function onMove(e: MouseEvent) {
-      const rect = container.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const px = (x - rect.width / 2) / (rect.width / 2);
-      const py = (y - rect.height / 2) / (rect.height / 2);
-      const tx = Math.max(Math.min(px * maxX, maxX), -maxX);
-      const ty = Math.max(Math.min(py * maxY, maxY), -maxY);
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        if (card) card.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
-      });
-    }
-
-    function onLeave() {
-      if (rafId) cancelAnimationFrame(rafId);
-      if (card) card.style.transform = "";
-    }
-
-    container?.addEventListener("mousemove", onMove);
-    container?.addEventListener("mouseleave", onLeave);
-
-    return () => {
-      container?.removeEventListener("mousemove", onMove);
-      container?.removeEventListener("mouseleave", onLeave);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, []);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -67,34 +24,47 @@ export default function CriarConta() {
     navigate("/dashboard");
   }
 
-  
+  const perfis = Object.entries(perfilLabels) as [PerfilUsuario, string][];
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen page-bg">
-      {/* Painel esquerdo (foto abaixo do logo) */}
-      <div className="w-full lg:w-1/2 flex flex-col p-10 left-panel">
-        <div className="brand-signature">
-          <div className="name">Wajunkai</div>
-          <div className="underline" aria-hidden="true" />
-        </div>
-
-        <div className="flex-1 flex items-center">
-          <div className="flex flex-col items-center justify-center gap-12 w-full">
-            <div className="rounded-full bg-white p-1 drop-shadow-lg flex items-center justify-center">
-              <img src={instLogo} alt="Logo da instituição" className="w-64 h-auto object-contain" />
-            </div>
-            <img src={bgJap} alt="Foto" className="w-80 md:w-96 rounded-xl object-cover shadow-lg" />
+    <div className="flex min-h-screen">
+      {/* Painel esquerdo */}
+      <div className="hidden w-1/2 flex-col justify-between bg-brand-900 p-10 text-white lg:flex">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mint-400/90 text-brand-900 shadow-md">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-lg font-bold">ILPI Wajunkai</p>
+            <p className="text-sm text-gray-400">Gestão de Estoque</p>
           </div>
         </div>
 
-        <p className="text-xs text-gray-500">v0.1 – Protótipo 2026</p>
+        <div>
+          <h2 className="text-3xl font-bold leading-tight">
+            Junte-se à equipe e mantenha o estoque sempre em dia.
+          </h2>
+          <p className="mt-4 max-w-md text-gray-400">
+            Crie seu acesso com o perfil correspondente ao seu setor na instituição.
+          </p>
+        </div>
+
+        <p className="text-xs text-gray-500">v0.1 – Protótipo 2026 · 36 idosos</p>
       </div>
 
       {/* Formulário */}
-      <div ref={containerRef} className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-10">
-        <div ref={cardRef} className="w-full max-w-lg card-3d card-breathe card-enter parallax-card border border-[#e7e2d8] p-8 lg:p-10 bg-white">
+      <div className="flex w-full items-center justify-center bg-[#f5f6f7] p-6 lg:w-1/2">
+        <div className="w-full max-w-sm">
           <h1 className="text-2xl font-bold text-gray-900">Criar conta</h1>
-          <p className="mt-1 text-sm text-gray-500">Preencha os dados abaixo para começar a usar o sistema.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Preencha os dados abaixo para começar a usar o sistema.
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <div>
@@ -104,7 +74,7 @@ export default function CriarConta() {
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Seu nome completo"
-                className="w-full rounded-lg input-offwhite px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-[#4A7C59] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/20"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 required
               />
             </div>
@@ -115,7 +85,7 @@ export default function CriarConta() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="voce@sua-instituicao.org"
-                className="w-full rounded-lg input-offwhite px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-[#4A7C59] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/20"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 required
               />
             </div>
@@ -127,7 +97,7 @@ export default function CriarConta() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-[#00B4F0] focus:outline-none focus:ring-2 focus:ring-[#00B4F0]/20"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   required
                 />
               </div>
@@ -138,12 +108,25 @@ export default function CriarConta() {
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-[#00B4F0] focus:outline-none focus:ring-2 focus:ring-[#00B4F0]/20"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   required
                 />
               </div>
             </div>
-            {/* Perfil / Setor removido - não utilizado */}
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Perfil / Setor</label>
+              <select
+                value={perfil}
+                onChange={(e) => setPerfil(e.target.value as PerfilUsuario)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              >
+                {perfis.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {erro && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{erro}</p>
@@ -156,7 +139,9 @@ export default function CriarConta() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Já tem uma conta?{" "}
-            <Link to="/" className="font-semibold text-[#00B4F0] hover:text-[#1E63C6]">Entrar</Link>
+            <Link to="/" className="font-semibold text-brand-600 hover:text-brand-700">
+              Entrar
+            </Link>
           </p>
         </div>
       </div>

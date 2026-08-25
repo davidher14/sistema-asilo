@@ -21,11 +21,11 @@ const colorClasses: Record<StatColor, { value: string; icon: string }> = {
 export default function StatCard({ label, value, color = "blue", icon, hint }: StatCardProps) {
   const { value: valueClass, icon: iconClass } = colorClasses[color];
   return (
-    <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="flex items-center justify-between rounded-xl border border-[#dfe6f1] bg-white p-5 shadow-[0_2px_5px_rgba(16,45,93,0.08)]">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+        <p className="text-xs font-medium text-[#6f829f]">{label}</p>
         <p className={`mt-1 text-3xl font-bold ${valueClass}`}>{value}</p>
-        {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
+        {hint && <p className="mt-1 text-xs text-[#8ca0bd]">{hint}</p>}
       </div>
       {icon && (
         <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconClass}`}>{icon}</div>

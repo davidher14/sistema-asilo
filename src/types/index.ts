@@ -44,6 +44,10 @@ export interface Entrada {
   produto: Produto;
   quantidade: number;
   dataValidade: string;
+  unidadeMedida?: UnidadeMedida;
+  valorEstimado?: number;
+  doador?: string;
+  responsavel?: string;
   fornecedor?: string;
   observacao?: string;
 }

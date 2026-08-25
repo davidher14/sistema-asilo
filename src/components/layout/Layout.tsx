@@ -11,12 +11,14 @@ interface LayoutProps {
 
 export default function Layout({ title, subtitle, alertCount, children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-[#f5f6f7]">
+    <div className="min-h-screen bg-[#eef3fb]">
       <Sidebar />
       <div className="pl-64">
-        <main className="p-8">
+        <main>
           <Header title={title} subtitle={subtitle} alertCount={alertCount} />
-          {children}
+          <div className="p-7 lg:p-8">
+            {children}
+          </div>
         </main>
       </div>
 

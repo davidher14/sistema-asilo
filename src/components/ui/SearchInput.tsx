@@ -31,7 +31,7 @@ export default function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-800 placeholder-gray-400 shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+        className="w-full rounded-lg border border-[#d7e0ed] bg-white py-2.5 pl-10 pr-3 text-sm text-gray-800 placeholder-[#91a4bf] shadow-sm transition-colors focus:border-[#24509a] focus:outline-none focus:ring-2 focus:ring-[#24509a]/20"
       />
     </div>
   );

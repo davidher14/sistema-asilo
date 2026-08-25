@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import institutionLogo from "../../../logo inst.jpg";
 
 const menuItems = [
   {
@@ -71,21 +72,17 @@ const menuItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-brand-900 text-white">
+    <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-[#102d5d] text-white">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-400/90 text-brand-900 shadow-md">
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-            />
-          </svg>
-        </div>
+      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-6">
+        <img
+          src={institutionLogo}
+          alt="Logo do Asilo Wajunkai"
+          className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-[#f2c328]/80"
+        />
         <div>
-          <p className="text-base font-bold leading-tight">ILPI Wajunkai</p>
-          <p className="text-xs text-gray-400">Gestão de Estoque</p>
+          <p className="text-base font-bold leading-tight tracking-wide">Asilo Wajunkai</p>
+          <p className="text-xs text-blue-100/65">Gestão de Estoque</p>
         </div>
       </div>
 
@@ -99,7 +96,7 @@ export default function Sidebar() {
               `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-white/10 text-white"
-                  : "text-gray-300 hover:bg-white/5 hover:text-white"
+                  : "text-blue-100/65 hover:bg-white/5 hover:text-white"
               }`
             }
           >
@@ -113,7 +110,7 @@ export default function Sidebar() {
                   </span>
                 )}
                 {isActive && (
-                  <span className="absolute -right-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-l-full bg-mint-400" />
+                    <span className="absolute -right-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-l-full bg-[#f2c328]" />
                 )}
               </>
             )}

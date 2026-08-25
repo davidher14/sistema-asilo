@@ -15,14 +15,14 @@ interface TableProps<T> {
 
 export default function Table<T>({ columns, data, emptyMessage = "Nenhum registro encontrado." }: TableProps<T>) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-xl border border-[#dfe6f1] border-t-[#1b4693] bg-white shadow-[0_2px_5px_rgba(16,45,93,0.08)]">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
+          <tr className="border-b border-[#e8edf5] bg-[#f8fafd]">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 ${
+                className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[#5e7495] ${
                   col.align === "right"
                     ? "text-right"
                     : col.align === "center"
@@ -44,7 +44,7 @@ export default function Table<T>({ columns, data, emptyMessage = "Nenhum registr
             </tr>
           ) : (
             data.map((row, idx) => (
-              <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
+              <tr key={idx} className="border-b border-[#edf1f7] last:border-0 odd:bg-white even:bg-[#fbfcfe] hover:bg-[#f3f7fd]">
                 {columns.map((col) => (
                   <td
                     key={col.key}

@@ -8,14 +8,14 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle, alertCount = 0 }: HeaderProps) {
   return (
-    <header className="mb-6 flex items-center justify-between gap-4">
+    <header className="flex min-h-[90px] items-center justify-between gap-4 border-b border-[#d9e1ef] bg-white px-7 py-5 shadow-sm lg:px-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>
+        <h1 className="text-[26px] font-bold tracking-tight text-[#102d5b]">{title}</h1>
+        <p className="mt-0.5 text-sm text-[#6f829f]">{subtitle}</p>
       </div>
       <div className="flex items-center gap-3">
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-alert-100 px-3.5 py-1.5 text-sm font-semibold text-alert-500 transition-colors hover:bg-alert-100/80"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#fff5dc] px-3.5 py-2 text-sm font-semibold text-[#c47b08] transition-colors hover:bg-[#ffefc4]"
           title="Alertas de estoque"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -27,7 +27,7 @@ export default function Header({ title, subtitle, alertCount = 0 }: HeaderProps)
           </svg>
           {alertCount} alertas
         </button>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-800 text-sm font-bold text-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#dce8f8] text-sm font-bold text-[#16428a]">
           {initials("Maria Fernanda Silva")}
         </div>
       </div>

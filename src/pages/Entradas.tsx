@@ -6,7 +6,7 @@ import Badge from "../components/ui/Badge";
 import Table, { type Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import { entradas as entradasMock, produtos } from "../data/mockData";
-import type { Entrada } from "../types";
+import type { Entrada, UnidadeMedida } from "../types";
 import { formatDate, getCategoriaVariant } from "../utils/helpers";
 
 export default function Entradas() {
@@ -19,7 +19,12 @@ export default function Entradas() {
   const [quantidade, setQuantidade] = useState("");
   const [dataEntrada, setDataEntrada] = useState("2026-08-25");
   const [dataValidade, setDataValidade] = useState("");
+  const [unidadeMedida, setUnidadeMedida] = useState<UnidadeMedida>("unidade");
   const [fornecedor, setFornecedor] = useState("");
+  const [valorEstimado, setValorEstimado] = useState("");
+  const [doador, setDoador] = useState("");
+  const [anonimo, setAnonimo] = useState(false);
+  const [responsavel, setResponsavel] = useState("");
   const [observacao, setObservacao] = useState("");
 
   const entradasFiltradas = useMemo(() => {
@@ -48,6 +53,10 @@ export default function Entradas() {
       dataValidade,
       produto,
       quantidade: Number(quantidade),
+      unidadeMedida,
+      valorEstimado: valorEstimado ? Number(valorEstimado) : undefined,
+      doador: anonimo ? "Anônimo" : doador || undefined,
+      responsavel: responsavel || undefined,
       fornecedor: fornecedor || undefined,
       observacao: observacao || undefined,
     }, ...atuais]);
@@ -56,7 +65,12 @@ export default function Entradas() {
     setQuantidade("");
     setDataEntrada("2026-08-25");
     setDataValidade("");
+    setUnidadeMedida("unidade");
     setFornecedor("");
+    setValorEstimado("");
+    setDoador("");
+    setAnonimo(false);
+    setResponsavel("");
     setObservacao("");
   }
 
@@ -178,18 +192,79 @@ export default function Entradas() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Fornecedor</label>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tipo de unidade</label>
+                <select
+                  value={unidadeMedida}
+                  onChange={(e) => setUnidadeMedida(e.target.value as UnidadeMedida)}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                >
+                  <option value="unidade">Unidade</option>
+                  <option value="caixa">Caixa</option>
+                  <option value="litro">Litro</option>
+                  <option value="pacote">Pacote</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Fornecedor</label>
+              <input
+                type="text"
+                value={fornecedor}
+                onChange={(e) => setFornecedor(e.target.value)}
+                placeholder="Ex.: Distribuidora Saúde+"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Nome do doador</label>
+              <input
+                type="text"
+                value={doador}
+                onChange={(e) => setDoador(e.target.value)}
+                placeholder="Nome da pessoa ou instituição"
+                disabled={anonimo}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+              />
+              <label className="mt-2 inline-flex items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={anonimo}
+                  onChange={(e) => {
+                    setAnonimo(e.target.checked);
+                    if (e.target.checked) setDoador("");
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                />
+                Doação anônima
+              </label>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Valor estimado (R$)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={valorEstimado}
+                  onChange={(e) => setValorEstimado(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Responsável pelo registro</label>
                 <input
                   type="text"
-                  value={fornecedor}
-                  onChange={(e) => setFornecedor(e.target.value)}
-                  placeholder="Ex.: Distribuidora Saúde+"
+                  value={responsavel}
+                  onChange={(e) => setResponsavel(e.target.value)}
+                  placeholder="Nome do responsável"
+                  required
                   className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 />
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Observação</label>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Observações</label>
               <textarea
                 value={observacao}
                 onChange={(e) => setObservacao(e.target.value)}

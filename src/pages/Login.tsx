@@ -1,5 +1,5 @@
 import { useState, type FormEvent, useRef, useEffect } from "react";
-import instLogo from "../../inst logo.png";
+import institutionLogo from "../../logo inst.jpg";
 import bgJap from "../assets/bg-japones2.jpg";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
@@ -24,7 +24,9 @@ export default function Login() {
     let rafId = 0;
 
     function onMove(e: MouseEvent) {
-      const rect = container.getBoundingClientRect();
+      const currentContainer = containerRef.current;
+      if (!currentContainer) return;
+      const rect = currentContainer.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const px = (x - rect.width / 2) / (rect.width / 2);
@@ -64,15 +66,17 @@ export default function Login() {
       {/* Painel esquerdo (foto abaixo do logo) */}
       <div className="w-full lg:w-1/2 flex flex-col p-10 left-panel">
         <div className="brand-signature">
-          <div className="name">Wajunkai</div>
+          <div className="name">Asilo Wajunkai</div>
           <div className="underline" aria-hidden="true" />
         </div>
 
         <div className="flex-1 flex items-center">
           <div className="flex flex-col items-center justify-center gap-12 w-full">
-            <div className="rounded-full bg-white p-1 drop-shadow-lg flex items-center justify-center">
-              <img src={instLogo} alt="Logo da instituição" className="w-64 h-auto object-contain" />
-            </div>
+            <img
+              src={institutionLogo}
+              alt="Logo do Asilo Wajunkai"
+              className="h-64 w-64 rounded-full object-cover ring-2 ring-[#f2c328]/80 drop-shadow-lg"
+            />
             <img src={bgJap} alt="Foto" className="w-80 md:w-96 rounded-xl object-cover shadow-lg" />
           </div>
         </div>

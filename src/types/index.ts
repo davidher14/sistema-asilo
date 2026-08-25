@@ -1,6 +1,15 @@
 export type PerfilUsuario = "ADMIN" | "ENFERMAGEM" | "COZINHA" | "HIGIENE_PESSOAL";
 
-export type UnidadeMedida = "peça" | "caixa" | "kg" | "unidade";
+export type UnidadeMedida = "caixa" | "unidade" | "litro" | "pacote";
+
+export type CategoriaProduto =
+  | "Alimentos"
+  | "Higiene pessoal"
+  | "Limpeza"
+  | "Medicamentos"
+  | "Roupas"
+  | "Utensílios"
+  | "Outros";
 
 export interface Usuario {
   id: string;
@@ -23,7 +32,7 @@ export interface Idoso {
 export interface Produto {
   id: string;
   nome: string;
-  categoria: string;
+  categoria: CategoriaProduto;
   unidadeMedida: UnidadeMedida;
   quantidadeEstoque: number;
   estoqueMinimo: number;
@@ -34,6 +43,7 @@ export interface Entrada {
   data: string;
   produto: Produto;
   quantidade: number;
+  dataValidade: string;
   fornecedor?: string;
   observacao?: string;
 }

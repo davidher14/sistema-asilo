@@ -12,15 +12,18 @@ import { formatDate, getCategoriaVariant } from "../utils/helpers";
 export default function Entradas() {
   const [busca, setBusca] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
+  const [entradas, setEntradas] = useState<Entrada[]>(entradasMock);
 
   // Formulário
   const [produtoId, setProdutoId] = useState(produtos[0]?.id ?? "");
   const [quantidade, setQuantidade] = useState("");
+  const [dataEntrada, setDataEntrada] = useState("2026-08-25");
+  const [dataValidade, setDataValidade] = useState("");
   const [fornecedor, setFornecedor] = useState("");
   const [observacao, setObservacao] = useState("");
 
   const entradasFiltradas = useMemo(() => {
-    return entradasMock.filter((e) => {
+    return entradas.filter((e) => {
       if (busca.trim() === "") return true;
       const q = busca.toLowerCase();
       return (
@@ -29,14 +32,30 @@ export default function Entradas() {
         e.produto.categoria.toLowerCase().includes(q)
       );
     });
-  }, [busca]);
+  }, [busca, entradas]);
+
+  function estaVencida(data: string) {
+    return new Date(`${data}T23:59:59`) < new Date();
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // Mock: fecha o modal sem persistir
+    const produto = produtos.find((item) => item.id === produtoId);
+    if (!produto) return;
+    setEntradas((atuais) => [{
+      id: `e-${Date.now()}`,
+      data: dataEntrada,
+      dataValidade,
+      produto,
+      quantidade: Number(quantidade),
+      fornecedor: fornecedor || undefined,
+      observacao: observacao || undefined,
+    }, ...atuais]);
     setModalAberto(false);
     setProdutoId(produtos[0]?.id ?? "");
     setQuantidade("");
+    setDataEntrada("2026-08-25");
+    setDataValidade("");
     setFornecedor("");
     setObservacao("");
   }
@@ -44,8 +63,15 @@ export default function Entradas() {
   const columns: Column<Entrada>[] = [
     {
       key: "data",
-      header: "Data",
+      header: "Data de entrada",
       render: (e) => <span className="text-gray-500">{formatDate(e.data)}</span>,
+    },
+    {
+      key: "validade",
+      header: "Data de validade",
+      render: (e) => estaVencida(e.dataValidade) ? (
+        <span className="font-semibold text-red-600">{formatDate(e.dataValidade)} <span className="text-xs">Vencido</span></span>
+      ) : <span className="text-gray-500">{formatDate(e.dataValidade)}</span>,
     },
     {
       key: "produto",
@@ -81,6 +107,7 @@ export default function Entradas() {
     <Layout
       title="Entradas"
       subtitle="Registros de entrada de estoque · 09 de agosto de 2026"
+      alertCount={entradas.filter((entrada) => estaVencida(entrada.dataValidade)).length}
     >
       {/* Barra de ações */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -97,6 +124,12 @@ export default function Entradas() {
           Registrar Entrada
         </Button>
       </div>
+
+      {entradasFiltradas.some((entrada) => estaVencida(entrada.dataValidade)) && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <span className="text-base">!</span> Existem produtos vencidos nas entradas do estoque.
+        </div>
+      )}
 
       <Table columns={columns} data={entradasFiltradas} emptyMessage="Nenhuma entrada encontrada." />
 
@@ -120,6 +153,16 @@ export default function Entradas() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Data de entrada</label>
+                <input type="date" value={dataEntrada} onChange={(e) => setDataEntrada(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Data de validade</label>
+                <input type="date" value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>

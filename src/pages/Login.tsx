@@ -1,13 +1,19 @@
 import { useState, type FormEvent, useRef, useEffect } from "react";
 import institutionLogo from "../../logo inst.jpg";
 import bgJap from "../assets/bg-japones2.jpg";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
+
+const ADMIN_EMAIL = "admin@wajunkai.org";
+const ADMIN_PASSWORD = "admin123";
+const USER_EMAIL = "usuario@wajunkai.org";
+const USER_PASSWORD = "usuario123";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const [senha, setSenha] = useState(ADMIN_PASSWORD);
+  const [erro, setErro] = useState("");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,7 +62,25 @@ export default function Login() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // Mock: qualquer credencial entra no dashboard
+
+    const emailNormalizado = email.trim().toLowerCase();
+    const senhaNormalizada = senha.trim();
+
+    const isAdmin =
+      emailNormalizado === ADMIN_EMAIL && senhaNormalizada === ADMIN_PASSWORD;
+    const isUser =
+      emailNormalizado === USER_EMAIL && senhaNormalizada === USER_PASSWORD;
+
+    if (!emailNormalizado || !senhaNormalizada || (!isAdmin && !isUser)) {
+      setErro("Credenciais inválidas.");
+      return;
+    }
+
+    const role = isAdmin ? "ADMIN" : "USER";
+
+    localStorage.setItem("asilo-user-role", role);
+    localStorage.setItem("asilo-user-email", emailNormalizado);
+    setErro("");
     navigate("/dashboard");
   }
 
@@ -107,7 +131,7 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-gray-900">Entrar na conta</h1>
           <p className="mt-1 text-sm text-gray-500">Acesse o painel de gestão de estoque da sua instituição.</p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">E-mail</label>
               <input
@@ -131,27 +155,17 @@ export default function Login() {
               />
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-gray-700">
-                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-[#00B4F0] focus:ring-[#00B4F0]" />
-                Lembrar de mim
-              </label>
-              <a href="#" className="font-semibold text-[#00B4F0] hover:text-[#1E63C6]">
-                Esqueci a senha
-              </a>
-            </div>
+            {erro && <p className="text-sm font-medium text-red-600">{erro}</p>}
+
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-[#00B4F0] focus:ring-[#00B4F0]" />
+              Lembrar de mim
+            </label>
 
             <Button type="submit" size="lg" className="w-full">
               Entrar
             </Button>
           </form>
-
-          <p className="mt-6 text-center text-sm text-gray-500">
-            Não tem uma conta?{" "}
-            <Link to="/criar-conta" className="font-semibold text-[#00B4F0] hover:text-[#1E63C6]">
-              Criar conta
-            </Link>
-          </p>
         </div>
       </div>
     </div>

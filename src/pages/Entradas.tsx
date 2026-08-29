@@ -6,7 +6,7 @@ import Badge from "../components/ui/Badge";
 import Table, { type Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import { entradas as entradasMock, produtos } from "../data/mockData";
-import type { Entrada, UnidadeMedida } from "../types";
+import type { Entrada, TipoEntrada, UnidadeMedida } from "../types";
 import { formatDate, getCategoriaVariant } from "../utils/helpers";
 
 export default function Entradas() {
@@ -19,6 +19,7 @@ export default function Entradas() {
   const [quantidade, setQuantidade] = useState("");
   const [dataEntrada, setDataEntrada] = useState("2026-08-25");
   const [dataValidade, setDataValidade] = useState("");
+  const [tipoEntrada, setTipoEntrada] = useState<TipoEntrada>("COMPRA");
   const [unidadeMedida, setUnidadeMedida] = useState<UnidadeMedida>("unidade");
   const [fornecedor, setFornecedor] = useState("");
   const [valorEstimado, setValorEstimado] = useState("");
@@ -47,7 +48,8 @@ export default function Entradas() {
     e.preventDefault();
     const produto = produtos.find((item) => item.id === produtoId);
     if (!produto) return;
-    setEntradas((atuais) => [{
+
+    const entradaNova: Entrada = {
       id: `e-${Date.now()}`,
       data: dataEntrada,
       dataValidade,
@@ -55,16 +57,20 @@ export default function Entradas() {
       quantidade: Number(quantidade),
       unidadeMedida,
       valorEstimado: valorEstimado ? Number(valorEstimado) : undefined,
-      doador: anonimo ? "Anônimo" : doador || undefined,
+      doador: tipoEntrada === "DOACAO" ? (anonimo ? "Anônimo" : doador || undefined) : undefined,
       responsavel: responsavel || undefined,
-      fornecedor: fornecedor || undefined,
+      fornecedor: tipoEntrada === "COMPRA" ? fornecedor || undefined : undefined,
+      tipoEntrada,
       observacao: observacao || undefined,
-    }, ...atuais]);
+    };
+
+    setEntradas((atuais) => [entradaNova, ...atuais]);
     setModalAberto(false);
     setProdutoId(produtos[0]?.id ?? "");
     setQuantidade("");
     setDataEntrada("2026-08-25");
     setDataValidade("");
+    setTipoEntrada("COMPRA");
     setUnidadeMedida("unidade");
     setFornecedor("");
     setValorEstimado("");
@@ -206,62 +212,80 @@ export default function Entradas() {
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Fornecedor</label>
-              <input
-                type="text"
-                value={fornecedor}
-                onChange={(e) => setFornecedor(e.target.value)}
-                placeholder="Ex.: Distribuidora Saúde+"
-                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              />
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tipo de entrada</label>
+              <select
+                value={tipoEntrada}
+                onChange={(e) => setTipoEntrada(e.target.value as TipoEntrada)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              >
+                <option value="COMPRA">Compra</option>
+                <option value="DOACAO">Doação</option>
+              </select>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Nome do doador</label>
-              <input
-                type="text"
-                value={doador}
-                onChange={(e) => setDoador(e.target.value)}
-                placeholder="Nome da pessoa ou instituição"
-                disabled={anonimo}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
-              />
-              <label className="mt-2 inline-flex items-center gap-2 text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={anonimo}
-                  onChange={(e) => {
-                    setAnonimo(e.target.checked);
-                    if (e.target.checked) setDoador("");
-                  }}
-                  className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                />
-                Doação anônima
-              </label>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+            {tipoEntrada === "COMPRA" ? (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Fornecedor</label>
+                  <input
+                    type="text"
+                    value={fornecedor}
+                    onChange={(e) => setFornecedor(e.target.value)}
+                    placeholder="Ex.: Distribuidora Saúde+"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Valor estimado (R$)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={valorEstimado}
+                    onChange={(e) => setValorEstimado(e.target.value)}
+                    placeholder="0,00"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+              </>
+            ) : (
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Valor estimado (R$)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={valorEstimado}
-                  onChange={(e) => setValorEstimado(e.target.value)}
-                  placeholder="0,00"
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Responsável pelo registro</label>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Nome do doador</label>
                 <input
                   type="text"
-                  value={responsavel}
-                  onChange={(e) => setResponsavel(e.target.value)}
-                  placeholder="Nome do responsável"
-                  required
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  value={doador}
+                  onChange={(e) => setDoador(e.target.value)}
+                  placeholder="Nome da pessoa ou instituição"
+                  disabled={anonimo}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  required={!anonimo}
                 />
+                <label className="mt-2 inline-flex items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={anonimo}
+                    onChange={(e) => {
+                      setAnonimo(e.target.checked);
+                      if (e.target.checked) setDoador("");
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  Doação anônima
+                </label>
               </div>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Responsável pelo registro</label>
+              <input
+                type="text"
+                value={responsavel}
+                onChange={(e) => setResponsavel(e.target.value)}
+                placeholder="Nome do responsável"
+                required
+                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Observações</label>

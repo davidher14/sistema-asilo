@@ -11,10 +11,10 @@ export default function Modal({ title, subtitle, onClose, children }: ModalProps
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
+        className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-5 flex items-start justify-between">
+        <div className="flex items-start justify-between border-b border-gray-200 px-6 py-4">
           <div>
             <h2 className="text-lg font-bold text-gray-800">{title}</h2>
             {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
@@ -29,7 +29,7 @@ export default function Modal({ title, subtitle, onClose, children }: ModalProps
             </svg>
           </button>
         </div>
-        {children}
+        <div className="max-h-[calc(85vh-88px)] overflow-y-auto p-6">{children}</div>
       </div>
     </div>
   );

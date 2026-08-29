@@ -38,6 +38,8 @@ export interface Produto {
   estoqueMinimo: number;
 }
 
+export type TipoEntrada = "COMPRA" | "DOACAO";
+
 export interface Entrada {
   id: string;
   data: string;
@@ -49,6 +51,7 @@ export interface Entrada {
   doador?: string;
   responsavel?: string;
   fornecedor?: string;
+  tipoEntrada?: TipoEntrada;
   observacao?: string;
 }
 

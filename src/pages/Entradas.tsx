@@ -1,307 +1,140 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Layout from "../components/layout/Layout";
 import SearchInput from "../components/ui/SearchInput";
 import Button from "../components/ui/Button";
-import Badge from "../components/ui/Badge";
 import Table, { type Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
-import { entradas as entradasMock, produtos } from "../data/mockData";
-import type { Entrada, TipoEntrada, UnidadeMedida } from "../types";
-import { formatDate, getCategoriaVariant } from "../utils/helpers";
+import type { Produto } from "../types";
+import { createMovement, listMovements, listProducts, type ApiMovimentacao } from "../services/api";
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
 
 export default function Entradas() {
   const [busca, setBusca] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
-  const [entradas, setEntradas] = useState<Entrada[]>(entradasMock);
-
-  // Formulário
-  const [produtoId, setProdutoId] = useState(produtos[0]?.id ?? "");
+  const [movimentacoes, setMovimentacoes] = useState<ApiMovimentacao[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [produtoId, setProdutoId] = useState("");
+  const [tipo, setTipo] = useState<"ENTRADA_COMPRA" | "ENTRADA_DOACAO">("ENTRADA_COMPRA");
   const [quantidade, setQuantidade] = useState("");
-  const [dataEntrada, setDataEntrada] = useState("2026-08-25");
-  const [dataValidade, setDataValidade] = useState("");
-  const [tipoEntrada, setTipoEntrada] = useState<TipoEntrada>("COMPRA");
-  const [unidadeMedida, setUnidadeMedida] = useState<UnidadeMedida>("unidade");
-  const [fornecedor, setFornecedor] = useState("");
-  const [valorEstimado, setValorEstimado] = useState("");
-  const [doador, setDoador] = useState("");
-  const [anonimo, setAnonimo] = useState(false);
-  const [responsavel, setResponsavel] = useState("");
-  const [observacao, setObservacao] = useState("");
+  const [doadorNome, setDoadorNome] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [valorCompra, setValorCompra] = useState("");
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
 
-  const entradasFiltradas = useMemo(() => {
-    return entradas.filter((e) => {
-      if (busca.trim() === "") return true;
-      const q = busca.toLowerCase();
-      return (
-        e.produto.nome.toLowerCase().includes(q) ||
-        (e.fornecedor ?? "").toLowerCase().includes(q) ||
-        e.produto.categoria.toLowerCase().includes(q)
-      );
-    });
-  }, [busca, entradas]);
-
-  function estaVencida(data: string) {
-    return new Date(`${data}T23:59:59`) < new Date();
+  async function carregarDados() {
+    const [listaProdutos, listaMovimentacoes] = await Promise.all([listProducts(), listMovements()]);
+    setProdutos(listaProdutos);
+    setMovimentacoes(listaMovimentacoes.filter((item) =>
+      item.tipoMovimentacao === "ENTRADA_COMPRA" || item.tipoMovimentacao === "ENTRADA_DOACAO",
+    ));
+    setProdutoId((atual) => atual || listaProdutos[0]?.id || "");
   }
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const produto = produtos.find((item) => item.id === produtoId);
-    if (!produto) return;
+  useEffect(() => {
+    carregarDados()
+      .catch((error: unknown) => setErro(error instanceof Error ? error.message : "Não foi possível carregar as entradas."))
+      .finally(() => setCarregando(false));
+  }, []);
 
-    const entradaNova: Entrada = {
-      id: `e-${Date.now()}`,
-      data: dataEntrada,
-      dataValidade,
-      produto,
-      quantidade: Number(quantidade),
-      unidadeMedida,
-      valorEstimado: valorEstimado ? Number(valorEstimado) : undefined,
-      doador: tipoEntrada === "DOACAO" ? (anonimo ? "Anônimo" : doador || undefined) : undefined,
-      responsavel: responsavel || undefined,
-      fornecedor: tipoEntrada === "COMPRA" ? fornecedor || undefined : undefined,
-      tipoEntrada,
-      observacao: observacao || undefined,
-    };
+  const movimentacoesFiltradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return movimentacoes;
+    return movimentacoes.filter((item) =>
+      item.produtoNome.toLowerCase().includes(termo) ||
+      (item.doadorNome ?? "").toLowerCase().includes(termo) ||
+      (item.cidade ?? "").toLowerCase().includes(termo),
+    );
+  }, [busca, movimentacoes]);
 
-    setEntradas((atuais) => [entradaNova, ...atuais]);
-    setModalAberto(false);
-    setProdutoId(produtos[0]?.id ?? "");
-    setQuantidade("");
-    setDataEntrada("2026-08-25");
-    setDataValidade("");
-    setTipoEntrada("COMPRA");
-    setUnidadeMedida("unidade");
-    setFornecedor("");
-    setValorEstimado("");
-    setDoador("");
-    setAnonimo(false);
-    setResponsavel("");
-    setObservacao("");
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setErro("");
+    setSalvando(true);
+    try {
+      await createMovement({
+        produtoId,
+        tipoMovimentacao: tipo,
+        quantidade: Number(quantidade),
+        doadorNome: tipo === "ENTRADA_DOACAO" ? doadorNome.trim() || undefined : undefined,
+        cidade: tipo === "ENTRADA_DOACAO" ? cidade.trim() || undefined : undefined,
+        valorCompra: tipo === "ENTRADA_COMPRA" && valorCompra ? Number(valorCompra) : undefined,
+      });
+      await carregarDados();
+      setModalAberto(false);
+      setQuantidade("");
+      setDoadorNome("");
+      setCidade("");
+      setValorCompra("");
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível registrar a entrada.");
+    } finally {
+      setSalvando(false);
+    }
   }
 
-  const columns: Column<Entrada>[] = [
-    {
-      key: "data",
-      header: "Data de entrada",
-      render: (e) => <span className="text-gray-500">{formatDate(e.data)}</span>,
-    },
-    {
-      key: "validade",
-      header: "Data de validade",
-      render: (e) => estaVencida(e.dataValidade) ? (
-        <span className="font-semibold text-red-600">{formatDate(e.dataValidade)} <span className="text-xs">Vencido</span></span>
-      ) : <span className="text-gray-500">{formatDate(e.dataValidade)}</span>,
-    },
-    {
-      key: "produto",
-      header: "Produto",
-      render: (e) => <span className="font-semibold text-gray-800">{e.produto.nome}</span>,
-    },
-    {
-      key: "categoria",
-      header: "Categoria",
-      render: (e) => <Badge variant={getCategoriaVariant(e.produto.categoria)}>{e.produto.categoria}</Badge>,
-    },
-    {
-      key: "quantidade",
-      header: "Quantidade",
-      align: "right",
-      render: (e) => (
-        <span className="font-bold tabular-nums text-emerald-600">+{e.quantidade}</span>
-      ),
-    },
-    {
-      key: "fornecedor",
-      header: "Fornecedor",
-      render: (e) => <span className="text-gray-600">{e.fornecedor ?? "—"}</span>,
-    },
-    {
-      key: "obs",
-      header: "Observação",
-      render: (e) => <span className="text-gray-500">{e.observacao ?? "—"}</span>,
-    },
+  const columns: Column<ApiMovimentacao>[] = [
+    { key: "data", header: "Data", render: (item) => <span className="text-gray-500">{formatDate(item.dataHora)}</span> },
+    { key: "produto", header: "Produto", render: (item) => <span className="font-semibold text-gray-800">{item.produtoNome}</span> },
+    { key: "tipo", header: "Tipo", render: (item) => item.tipoMovimentacao === "ENTRADA_COMPRA" ? "Compra" : "Doação" },
+    { key: "quantidade", header: "Quantidade", align: "right", render: (item) => <span className="font-bold text-emerald-600">+{item.quantidade}</span> },
+    { key: "doador", header: "Doador / valor", render: (item) => item.tipoMovimentacao === "ENTRADA_DOACAO" ? item.doadorNome ?? "—" : item.valorCompra == null ? "—" : item.valorCompra.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) },
+    { key: "cidade", header: "Cidade", render: (item) => <span className="text-gray-500">{item.cidade ?? "—"}</span> },
   ];
 
   return (
-    <Layout
-      title="Entradas"
-      subtitle="Registros de entrada de estoque · 09 de agosto de 2026"
-      alertCount={entradas.filter((entrada) => estaVencida(entrada.dataValidade)).length}
-    >
-      {/* Barra de ações */}
+    <Layout title="Entradas" subtitle="Compras e doações registradas no estoque">
+      {erro && <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</p>}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <SearchInput
-          placeholder="Buscar por produto, fornecedor ou categoria..."
-          value={busca}
-          onChange={setBusca}
-          className="w-full sm:max-w-xs"
-        />
-        <Button className="sm:ml-auto" onClick={() => setModalAberto(true)}>
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Registrar Entrada
-        </Button>
+        <SearchInput placeholder="Buscar por produto, doador ou cidade..." value={busca} onChange={setBusca} className="w-full sm:max-w-md" />
+        <Button className="sm:ml-auto" onClick={() => setModalAberto(true)} disabled={!produtos.length}>Registrar entrada</Button>
       </div>
-
-      {entradasFiltradas.some((entrada) => estaVencida(entrada.dataValidade)) && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-          <span className="text-base">!</span> Existem produtos vencidos nas entradas do estoque.
-        </div>
-      )}
-
-      <Table columns={columns} data={entradasFiltradas} emptyMessage="Nenhuma entrada encontrada." />
+      {carregando ? <p className="py-10 text-center text-sm text-gray-500">Carregando entradas...</p> : <Table columns={columns} data={movimentacoesFiltradas} emptyMessage="Nenhuma entrada encontrada." />}
 
       {modalAberto && (
-        <Modal
-          title="Registrar Entrada"
-          subtitle="Adicione itens ao estoque"
-          onClose={() => setModalAberto(false)}
-        >
+        <Modal title="Registrar entrada" subtitle="A quantidade será somada ao estoque do produto" onClose={() => setModalAberto(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Produto</label>
-              <select
-                value={produtoId}
-                onChange={(e) => setProdutoId(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                {produtos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome}
-                  </option>
-                ))}
+              <select value={produtoId} onChange={(event) => setProdutoId(event.target.value)} required className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800">
+                {produtos.map((produto) => <option key={produto.id} value={produto.id}>{produto.nome}</option>)}
               </select>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Data de entrada</label>
-                <input type="date" value={dataEntrada} onChange={(e) => setDataEntrada(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Data de validade</label>
-                <input type="date" value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantidade</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={quantidade}
-                  onChange={(e) => setQuantidade(e.target.value)}
-                  placeholder="0"
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tipo de unidade</label>
-                <select
-                  value={unidadeMedida}
-                  onChange={(e) => setUnidadeMedida(e.target.value as UnidadeMedida)}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                >
-                  <option value="unidade">Unidade</option>
-                  <option value="caixa">Caixa</option>
-                  <option value="litro">Litro</option>
-                  <option value="pacote">Pacote</option>
-                </select>
-              </div>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tipo de entrada</label>
-              <select
-                value={tipoEntrada}
-                onChange={(e) => setTipoEntrada(e.target.value as TipoEntrada)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                <option value="COMPRA">Compra</option>
-                <option value="DOACAO">Doação</option>
+              <select value={tipo} onChange={(event) => setTipo(event.target.value as typeof tipo)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800">
+                <option value="ENTRADA_COMPRA">Compra</option>
+                <option value="ENTRADA_DOACAO">Doação</option>
               </select>
             </div>
-
-            {tipoEntrada === "COMPRA" ? (
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantidade</label>
+              <input type="number" min="0.01" step="any" value={quantidade} onChange={(event) => setQuantidade(event.target.value)} required className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+            </div>
+            {tipo === "ENTRADA_DOACAO" ? (
               <>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Fornecedor</label>
-                  <input
-                    type="text"
-                    value={fornecedor}
-                    onChange={(e) => setFornecedor(e.target.value)}
-                    placeholder="Ex.: Distribuidora Saúde+"
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                    required
-                  />
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Doador</label>
+                  <input value={doadorNome} onChange={(event) => setDoadorNome(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Valor estimado (R$)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={valorEstimado}
-                    onChange={(e) => setValorEstimado(e.target.value)}
-                    placeholder="0,00"
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                  />
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Cidade</label>
+                  <input value={cidade} onChange={(event) => setCidade(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
                 </div>
               </>
             ) : (
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Nome do doador</label>
-                <input
-                  type="text"
-                  value={doador}
-                  onChange={(e) => setDoador(e.target.value)}
-                  placeholder="Nome da pessoa ou instituição"
-                  disabled={anonimo}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
-                  required={!anonimo}
-                />
-                <label className="mt-2 inline-flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={anonimo}
-                    onChange={(e) => {
-                      setAnonimo(e.target.checked);
-                      if (e.target.checked) setDoador("");
-                    }}
-                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  Doação anônima
-                </label>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Valor da compra (R$)</label>
+                <input type="number" min="0" step="0.01" value={valorCompra} onChange={(event) => setValorCompra(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
               </div>
             )}
-
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Responsável pelo registro</label>
-              <input
-                type="text"
-                value={responsavel}
-                onChange={(e) => setResponsavel(e.target.value)}
-                placeholder="Nome do responsável"
-                required
-                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Observações</label>
-              <textarea
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                rows={3}
-                placeholder="Notas adicionais (lote, validade, etc.)"
-                className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              />
-            </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setModalAberto(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">Registrar entrada</Button>
+              <Button type="button" variant="secondary" onClick={() => setModalAberto(false)}>Cancelar</Button>
+              <Button type="submit" disabled={salvando}>{salvando ? "Registrando..." : "Registrar entrada"}</Button>
             </div>
           </form>
         </Modal>

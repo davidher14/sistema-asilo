@@ -3,17 +3,14 @@ import institutionLogo from "../../logo inst.jpg";
 import bgJap from "../assets/bg-japones2.jpg";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
-
-const ADMIN_EMAIL = "admin@wajunkai.org";
-const ADMIN_PASSWORD = "admin123";
-const USER_EMAIL = "usuario@wajunkai.org";
-const USER_PASSWORD = "usuario123";
+import { login } from "../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState(ADMIN_EMAIL);
-  const [senha, setSenha] = useState(ADMIN_PASSWORD);
+  const [loginDigitado, setLoginDigitado] = useState("");
+  const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [enviando, setEnviando] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -60,28 +57,18 @@ export default function Login() {
     };
   }, []);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-
-    const emailNormalizado = email.trim().toLowerCase();
-    const senhaNormalizada = senha.trim();
-
-    const isAdmin =
-      emailNormalizado === ADMIN_EMAIL && senhaNormalizada === ADMIN_PASSWORD;
-    const isUser =
-      emailNormalizado === USER_EMAIL && senhaNormalizada === USER_PASSWORD;
-
-    if (!emailNormalizado || !senhaNormalizada || (!isAdmin && !isUser)) {
-      setErro("Credenciais inválidas.");
-      return;
-    }
-
-    const role = isAdmin ? "ADMIN" : "USER";
-
-    localStorage.setItem("asilo-user-role", role);
-    localStorage.setItem("asilo-user-email", emailNormalizado);
     setErro("");
-    navigate("/dashboard");
+    setEnviando(true);
+    try {
+      await login(loginDigitado.trim(), senha);
+      navigate("/dashboard");
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível entrar.");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -133,12 +120,12 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">E-mail</label>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Login</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@sua-instituicao.org"
+                type="text"
+                value={loginDigitado}
+                onChange={(e) => setLoginDigitado(e.target.value)}
+                placeholder="Seu login"
                 className="w-full rounded-lg input-offwhite px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-[#4A7C59] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/20"
                 required
               />
@@ -157,13 +144,8 @@ export default function Login() {
 
             {erro && <p className="text-sm font-medium text-red-600">{erro}</p>}
 
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-[#00B4F0] focus:ring-[#00B4F0]" />
-              Lembrar de mim
-            </label>
-
-            <Button type="submit" size="lg" className="w-full">
-              Entrar
+            <Button type="submit" size="lg" className="w-full" disabled={enviando}>
+              {enviando ? "Entrando..." : "Entrar"}
             </Button>
           </form>
         </div>

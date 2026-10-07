@@ -27,12 +27,16 @@ export function getSetorVariant(nome: string): "green" | "blue" | "purple" | "or
 export function getCategoriaVariant(categoria: string): "green" | "blue" | "purple" | "red" | "orange" {
   switch (categoria) {
     case "Alimentação":
+    case "Alimentos":
       return "green";
     case "Medicamentos":
       return "red";
     case "Enfermagem":
+    case "Limpeza":
       return "blue";
     case "Higiene":
+    case "Higiene pessoal":
+    case "Enfermagem / Higiene":
       return "purple";
     default:
       return "orange";

@@ -1,6 +1,6 @@
 export type PerfilUsuario = "ADMIN" | "ENFERMAGEM" | "COZINHA" | "HIGIENE_PESSOAL";
 
-export type UnidadeMedida = "caixa" | "unidade" | "litro" | "pacote";
+export type UnidadeMedida = "caixa" | "unidade" | "litro" | "pacote" | "kg";
 
 export type CategoriaProduto =
   | "Alimentos"
@@ -9,6 +9,8 @@ export type CategoriaProduto =
   | "Medicamentos"
   | "Roupas"
   | "Utensílios"
+  | "Enfermagem / Higiene"
+  | "Manutenção"
   | "Outros";
 
 export interface Usuario {
@@ -73,4 +75,17 @@ export interface MovimentacaoRecente {
   quantidade: number;
   setor?: Setor;
   idoso?: Idoso;
+}
+
+export interface RegistroMovimentacao {
+  id: string;
+  produtoId: string;
+  produtoNome: string;
+  tipoMovimentacao: "ENTRADA_DOACAO" | "ENTRADA_COMPRA" | "SAIDA_CONSUMO" | "SAIDA_PERDA";
+  quantidade: number;
+  dataHora: string;
+  doadorNome?: string;
+  cidade?: string;
+  valorCompra?: number;
+  residenteNome?: string;
 }

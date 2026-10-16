@@ -5,8 +5,8 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import Modal from "../components/ui/Modal";
 import type { CategoriaProduto, Produto, UnidadeMedida } from "../types";
-import { getCategoriaVariant } from "../utils/helpers";
-import { createProduct, deactivateProduct, listProducts, updateProduct } from "../services/api";
+import { getCategoriaVariant, parseLocalizedNumber, positiveQuantityError } from "../utils/helpers";
+import { activateProduct, createProduct, deactivateProduct, listProducts, updateProduct } from "../services/api";
 
 const categorias: Array<"Todos" | CategoriaProduto> = ["Todos", "Alimentos", "Enfermagem / Higiene", "Limpeza", "Medicamentos", "Manutenção", "Outros"];
 
@@ -20,8 +20,11 @@ export default function Produtos() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
+  const [dataValidade, setDataValidade] = useState("");
+  const [erroQuantidade, setErroQuantidade] = useState("");
+  const [erroMinimo, setErroMinimo] = useState("");
 
-  // Formulário
   const [nome, setNome] = useState("");
   const [categoriaForm, setCategoriaForm] = useState<CategoriaProduto>("Enfermagem / Higiene");
   const [unidade, setUnidade] = useState<UnidadeMedida>("unidade");
@@ -29,11 +32,12 @@ export default function Produtos() {
   const [minimo, setMinimo] = useState("");
 
   useEffect(() => {
-    listProducts()
+    setCarregando(true);
+    listProducts(mostrarInativos ? "INATIVO" : "ATIVO")
       .then(setProdutos)
       .catch((error: unknown) => setErro(error instanceof Error ? error.message : "Não foi possível carregar os produtos."))
       .finally(() => setCarregando(false));
-  }, []);
+  }, [mostrarInativos]);
 
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((p) => {
@@ -53,7 +57,8 @@ export default function Produtos() {
 
   function abrirNovoProduto() {
     setProdutoEditando(null);
-    setNome(""); setCategoriaForm("Enfermagem / Higiene"); setUnidade("unidade"); setQuantidade(""); setMinimo("");
+    setNome(""); setCategoriaForm("Enfermagem / Higiene"); setUnidade("unidade"); setQuantidade(""); setMinimo(""); setDataValidade("");
+    setErroQuantidade(""); setErroMinimo("");
     setModalAberto(true);
   }
 
@@ -61,12 +66,26 @@ export default function Produtos() {
     setProdutoEditando(produto);
     setNome(produto.nome); setCategoriaForm(produto.categoria); setUnidade(produto.unidadeMedida);
     setQuantidade(String(produto.quantidadeEstoque)); setMinimo(String(produto.estoqueMinimo));
+    setDataValidade(produto.dataValidade ?? "");
+    setErroQuantidade(""); setErroMinimo("");
     setModalAberto(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setErro("");
+    const minimum = parseLocalizedNumber(minimo);
+    const invalidMinimum = !minimo.trim() || !Number.isFinite(minimum) || minimum < 0 ||
+      (unidade === "unidade" && !Number.isInteger(minimum));
+    const invalidQuantity = produtoEditando ? "" : positiveQuantityError(quantidade, unidade);
+    const initialQuantity = parseLocalizedNumber(quantidade);
+    setErroMinimo(invalidMinimum
+      ? unidade === "unidade" && Number.isFinite(minimum) && !Number.isInteger(minimum)
+        ? "Para unidade, informe um número inteiro maior ou igual a zero."
+        : "Informe um valor válido maior ou igual a zero."
+      : "");
+    setErroQuantidade(invalidQuantity);
+    if (!nome.trim() || invalidMinimum || invalidQuantity) return;
     setSalvando(true);
     try {
       if (produtoEditando) {
@@ -74,7 +93,8 @@ export default function Produtos() {
           nome: nome.trim(),
           categoria: categoriaForm,
           unidadeMedida: unidade,
-          estoqueMinimo: Number(minimo),
+          estoqueMinimo: minimum,
+          dataValidade: dataValidade || undefined,
         });
         setProdutos((atual) => atual.map((produto) => produto.id === updated.id ? updated : produto));
       } else {
@@ -82,8 +102,9 @@ export default function Produtos() {
           nome: nome.trim(),
           categoria: categoriaForm,
           unidadeMedida: unidade,
-          quantidadeEstoque: Number(quantidade),
-          estoqueMinimo: Number(minimo),
+          quantidadeEstoque: initialQuantity,
+          estoqueMinimo: minimum,
+          dataValidade: dataValidade || undefined,
         });
         setProdutos((atual) => [created, ...atual]);
       }
@@ -113,10 +134,14 @@ export default function Produtos() {
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchInput placeholder="Buscar produto ou categoria..." value={busca} onChange={setBusca} className="w-full lg:max-w-sm" />
         <div className="flex flex-wrap items-center gap-2"><span className="text-sm text-gray-500">Filtrar:</span>{categorias.map((item) => <button key={item} onClick={() => setCategoria(item)} className={`rounded-lg border px-4 py-2 text-xs font-semibold transition-colors ${categoria === item ? "border-[#204895] bg-[#204895] text-white shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:border-[#204895] hover:text-[#204895]"}`}>{item}</button>)}</div>
-        <Button className="lg:ml-auto" onClick={abrirNovoProduto}><span className="text-lg leading-none">+</span> Adicionar produto</Button>
+        <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+          <input type="checkbox" checked={mostrarInativos} onChange={(event) => setMostrarInativos(event.target.checked)} />
+          Mostrar inativos
+        </label>
+        {!mostrarInativos && <Button className="lg:ml-auto" onClick={abrirNovoProduto}><span className="text-lg leading-none">+</span> Adicionar produto</Button>}
       </div>
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm"><table className="w-full min-w-[850px] text-left text-sm"><thead><tr className="border-b border-gray-200 bg-gray-50 text-[11px] uppercase tracking-wider text-[#35517f]">{["Produto", "Categoria", "Quantidade", "Status", "Estoque mínimo", "Ações"].map((header) => <th key={header} className="px-4 py-3 font-semibold">{header}</th>)}</tr></thead><tbody>
-        {carregando ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Carregando produtos...</td></tr> : produtosFiltrados.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Nenhum produto encontrado.</td></tr> : produtosFiltrados.map((produto) => { const status = produto.quantidadeEstoque === 0 ? "Esgotado" : produto.quantidadeEstoque < produto.estoqueMinimo ? "Faltando" : "Em estoque"; const statusStyle = status === "Em estoque" ? "border-emerald-200 bg-emerald-50 text-emerald-600" : status === "Faltando" ? "border-amber-200 bg-amber-50 text-amber-600" : "border-red-200 bg-red-50 text-red-500"; return <tr key={produto.id} className="border-b border-gray-100 last:border-0 hover:bg-blue-50/30"><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.nome}</td><td className="px-4 py-4"><Badge variant={getCategoriaVariant(produto.categoria)}>{produto.categoria}</Badge></td><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.quantidadeEstoque} <span className="text-xs font-normal text-gray-500">{produto.unidadeMedida}</span></td><td className="px-4 py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusStyle}`}>{status}</span></td>        <td className="px-4 py-4 text-gray-500">{produto.estoqueMinimo} {produto.unidadeMedida}</td><td className="px-4 py-4"><div className="flex gap-2"><button onClick={() => abrirEdicao(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-[#204895] hover:bg-blue-100" aria-label={`Editar ${produto.nome}`} title="Editar">✎</button><button onClick={() => setProdutoExcluindo(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100" aria-label={`Desativar ${produto.nome}`} title="Desativar">⌫</button></div></td></tr>; })}
+        {carregando ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Carregando produtos...</td></tr> : produtosFiltrados.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Nenhum produto encontrado.</td></tr> : produtosFiltrados.map((produto) => { const status = produto.quantidadeEstoque === 0 ? "Esgotado" : produto.precisaReposicao ? "Faltando" : "Em estoque"; const statusStyle = status === "Em estoque" ? "border-emerald-200 bg-emerald-50 text-emerald-600" : status === "Faltando" ? "border-amber-200 bg-amber-50 text-amber-600" : "border-red-200 bg-red-50 text-red-500"; return <tr key={produto.id} className="border-b border-gray-100 last:border-0 hover:bg-blue-50/30"><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.nome}<div className="mt-1 flex gap-1">{produto.estaVencido && <Badge variant="red">Vencido</Badge>}{produto.precisaReposicao && <Badge variant="orange">Repor estoque</Badge>}</div></td><td className="px-4 py-4"><Badge variant={getCategoriaVariant(produto.categoria)}>{produto.categoria}</Badge></td><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.quantidadeEstoque} <span className="text-xs font-normal text-gray-500">{produto.unidadeMedida}</span></td><td className="px-4 py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusStyle}`}>{mostrarInativos ? "Inativo" : status}</span></td><td className="px-4 py-4 text-gray-500">{produto.estoqueMinimo} {produto.unidadeMedida}</td><td className="px-4 py-4"><div className="flex gap-2">{mostrarInativos ? <Button size="sm" disabled={salvando} onClick={async () => { setSalvando(true); try { await activateProduct(produto.id); setProdutos((items) => items.filter((item) => item.id !== produto.id)); } catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível reativar o produto."); } finally { setSalvando(false); } }}>Reativar</Button> : <><button onClick={() => abrirEdicao(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-[#204895] hover:bg-blue-100" aria-label={`Editar ${produto.nome}`} title="Editar">✎</button><button onClick={() => setProdutoExcluindo(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100" aria-label={`Desativar ${produto.nome}`} title="Desativar">⌫</button></>}</div></td></tr>; })}
       </tbody></table></div>
 
       {modalAberto && (
@@ -171,29 +196,34 @@ export default function Produtos() {
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantidade inicial</label>
                 <input
-                  type="number"
-                  min={0}
+                  inputMode="decimal"
                   value={quantidade}
-                  onChange={(e) => setQuantidade(e.target.value)}
+                  onChange={(e) => { setQuantidade(e.target.value); setErroQuantidade(""); }}
                   placeholder="0"
                   disabled={Boolean(produtoEditando)}
                   className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   required
                 />
+                {erroQuantidade && <p className="mt-1 text-xs text-red-600">{erroQuantidade}</p>}
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700">Estoque mínimo</label>
                 <input
-                  type="number"
-                  min={0}
+                  inputMode="decimal"
                   value={minimo}
-                  onChange={(e) => setMinimo(e.target.value)}
+                  onChange={(e) => { setMinimo(e.target.value); setErroMinimo(""); }}
                   placeholder="0"
                   className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   required
                 />
+                {erroMinimo && <p className="mt-1 text-xs text-red-600">{erroMinimo}</p>}
               </div>
             </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Data de validade (opcional)</label>
+              <input type="date" value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+            </div>
+            {!produtoEditando && <p className="text-xs text-amber-700">O saldo inicial não será registrado como entrada nos relatórios.</p>}
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={() => setModalAberto(false)}>
                 Cancelar
@@ -222,17 +252,22 @@ export default function Produtos() {
               type="button"
               variant="danger"
               onClick={async () => {
+                if (salvando) return;
                 setErro("");
+                setSalvando(true);
                 try {
                   await deactivateProduct(produtoExcluindo.id);
                   setProdutos((atuais) => atuais.filter((produto) => produto.id !== produtoExcluindo.id));
                   setProdutoExcluindo(null);
                 } catch (error) {
                   setErro(error instanceof Error ? error.message : "Não foi possível desativar o produto.");
+                } finally {
+                  setSalvando(false);
                 }
               }}
+              disabled={salvando}
             >
-              Desativar produto
+              {salvando ? "Desativando..." : "Desativar produto"}
             </Button>
           </div>
         </Modal>

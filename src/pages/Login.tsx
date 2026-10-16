@@ -1,16 +1,18 @@
 import { useState, type FormEvent, useRef, useEffect } from "react";
-import institutionLogo from "../../logo inst.jpg";
+import institutionLogo from "../assets/logo-inst.jpg";
 import bgJap from "../assets/bg-japones2.jpg";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import { login } from "../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loginDigitado, setLoginDigitado] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const mensagemSessao = (location.state as { message?: string } | null)?.message;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -118,11 +120,13 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-gray-900">Entrar na conta</h1>
           <p className="mt-1 text-sm text-gray-500">Acesse o painel de gestão de estoque da sua instituição.</p>
 
+          {mensagemSessao && <p role="status" className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{mensagemSessao}</p>}
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Login</label>
               <input
                 type="text"
+                autoComplete="username"
                 value={loginDigitado}
                 onChange={(e) => setLoginDigitado(e.target.value)}
                 placeholder="Seu login"
@@ -134,6 +138,7 @@ export default function Login() {
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Senha</label>
               <input
                 type="password"
+                autoComplete="current-password"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 placeholder="••••••••"

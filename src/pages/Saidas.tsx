@@ -6,11 +6,9 @@ import Badge from "../components/ui/Badge";
 import Table, { type Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import type { Produto } from "../types";
-import { createMovement, listMovements, listProducts, type ApiMovimentacao } from "../services/api";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
-}
+import { createMovement, getProduct, type ApiMovimentacao } from "../services/api";
+import { loadInventoryData } from "../data/inventoryCache";
+import { formatLocalDateTime, parseLocalizedNumber, positiveQuantityError } from "../utils/helpers";
 
 export default function Saidas() {
   const [busca, setBusca] = useState("");
@@ -25,14 +23,15 @@ export default function Saidas() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [erroQuantidade, setErroQuantidade] = useState("");
 
   async function carregarDados() {
-    const [listaProdutos, listaMovimentacoes] = await Promise.all([listProducts(), listMovements()]);
-    setProdutos(listaProdutos);
+    const { products: listaProdutos, movements: listaMovimentacoes } = await loadInventoryData();
+    setProdutos(listaProdutos.filter((produto) => produto.situacao === "ATIVO"));
     setMovimentacoes(listaMovimentacoes.filter((item) =>
       item.tipoMovimentacao === "SAIDA_CONSUMO" || item.tipoMovimentacao === "SAIDA_PERDA",
     ));
-    setProdutoId((atual) => atual || listaProdutos[0]?.id || "");
+    setProdutoId((atual) => atual || listaProdutos.find((produto) => produto.situacao === "ATIVO")?.id || "");
   }
 
   useEffect(() => {
@@ -60,13 +59,28 @@ export default function Saidas() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setErro("");
+    const product = produtos.find((item) => item.id === produtoId);
+    const invalidQuantity = positiveQuantityError(quantidade, product?.unidadeMedida ?? "");
+    const amount = parseLocalizedNumber(quantidade);
+    setErroQuantidade(invalidQuantity);
+    if (invalidQuantity) return;
     setSalvando(true);
     try {
+      const latestProduct = await getProduct(produtoId);
+      if (amount > latestProduct.quantidadeEstoque) {
+        setErro(`Quantidade maior que o estoque disponível (${latestProduct.quantidadeEstoque})`);
+        return;
+      }
+      if (tipo === "SAIDA_CONSUMO" && !residenteNome.trim()) {
+        setErro("Informe o nome do residente.");
+        return;
+      }
+      if (!window.confirm("Confirma esta saída? A movimentação não poderá ser desfeita.")) return;
       await createMovement({
         produtoId,
         tipoMovimentacao: tipo,
-        quantidade: Number(quantidade),
-        residenteNome: tipo === "SAIDA_CONSUMO" ? residenteNome.trim() || undefined : undefined,
+        quantidade: amount,
+        residenteNome: tipo === "SAIDA_CONSUMO" ? residenteNome.trim() : undefined,
       });
       await carregarDados();
       setModalAberto(false);
@@ -80,7 +94,7 @@ export default function Saidas() {
   }
 
   const columns: Column<ApiMovimentacao>[] = [
-    { key: "data", header: "Data", render: (item) => <span className="text-gray-500">{formatDate(item.dataHora)}</span> },
+    { key: "data", header: "Data", render: (item) => <span className="text-gray-500">{formatLocalDateTime(item.dataHora)}</span> },
     { key: "produto", header: "Produto", render: (item) => <span className="font-semibold text-gray-800">{item.produtoNome}</span> },
     { key: "tipo", header: "Tipo", render: (item) => <Badge variant={item.tipoMovimentacao === "SAIDA_PERDA" ? "red" : "purple"}>{item.tipoMovimentacao === "SAIDA_PERDA" ? "Perda" : "Consumo"}</Badge> },
     { key: "quantidade", header: "Quantidade", align: "right", render: (item) => <span className="font-bold text-red-600">−{item.quantidade}</span> },
@@ -131,12 +145,13 @@ export default function Saidas() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantidade</label>
-              <input type="number" min="0.01" step="any" value={quantidade} onChange={(event) => setQuantidade(event.target.value)} required className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+              <input inputMode="decimal" value={quantidade} onChange={(event) => { setQuantidade(event.target.value); setErroQuantidade(""); }} required aria-invalid={Boolean(erroQuantidade)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+              {erroQuantidade && <p className="mt-1 text-xs text-red-600">{erroQuantidade}</p>}
             </div>
             {tipo === "SAIDA_CONSUMO" && (
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Residente (opcional)</label>
-                <input value={residenteNome} onChange={(event) => setResidenteNome(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Residente</label>
+                <input required value={residenteNome} onChange={(event) => setResidenteNome(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
               </div>
             )}
             <div className="flex justify-end gap-3 pt-2">

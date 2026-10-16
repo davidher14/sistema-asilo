@@ -55,3 +55,34 @@ export function initials(nome: string): string {
 export function getSetorNome(setor: Setor | undefined): string {
   return setor?.nome ?? "—";
 }
+
+export function toLocalDateKey(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function formatLocalDate(iso: string): string {
+  const dateKey = toLocalDateKey(iso);
+  return dateKey ? new Date(`${dateKey}T00:00:00`).toLocaleDateString("pt-BR") : "—";
+}
+
+export function formatLocalDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return `${formatLocalDate(iso)} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+export function parseLocalizedNumber(value: string): number {
+  return Number(value.trim().replace(",", "."));
+}
+
+export function positiveQuantityError(value: string, unit: string): string {
+  const amount = parseLocalizedNumber(value);
+  if (!value.trim() || !Number.isFinite(amount) || amount <= 0) return "Informe uma quantidade válida maior que zero.";
+  if (unit === "unidade" && !Number.isInteger(amount)) return "Para unidade, informe um número inteiro.";
+  return "";
+}

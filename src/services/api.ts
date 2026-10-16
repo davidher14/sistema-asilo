@@ -44,6 +44,8 @@ interface ApiProduto {
   unidadeMedidaProduto: ApiUnidade;
   categoriaProduto: ApiCategoria;
   dataValidade?: string;
+  estaVencido: boolean;
+  precisaReposicao: boolean;
   situacao: "ATIVO" | "INATIVO";
 }
 
@@ -83,26 +85,67 @@ export class ApiError extends Error {
   }
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+let firstRequest = true;
+let slowNoticeTriggered = false;
+
+localStorage.removeItem("asilo-user-role");
+localStorage.removeItem("asilo-user-email");
+
 async function fetchApi(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort("timeout"), 60_000);
+  const slowId = firstRequest && !slowNoticeTriggered
+    ? window.setTimeout(() => {
+        slowNoticeTriggered = true;
+        window.dispatchEvent(new Event("api:slow"));
+      }, 5_000)
+    : undefined;
+  const externalSignal = init?.signal;
+  const abortFromExternal = () => controller.abort(externalSignal?.reason);
+  externalSignal?.addEventListener("abort", abortFromExternal);
+
   try {
-    return await fetch(input, init);
+    const response = await fetch(input, { ...init, signal: controller.signal });
+    firstRequest = false;
+    return response;
   } catch (error) {
+    if (controller.signal.aborted && controller.signal.reason === "timeout") {
+      throw new ApiError("O servidor está iniciando, tente novamente em instantes");
+    }
     if (error instanceof TypeError) {
       throw new ApiError("Não foi possível acessar a API. Verifique a URL, a disponibilidade do serviço e a configuração CORS do backend.");
     }
     throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+    if (slowId !== undefined) window.clearTimeout(slowId);
+    externalSignal?.removeEventListener("abort", abortFromExternal);
   }
 }
 
-function readSession(): ApiSession | null {
+export function readSession(): ApiSession | null {
   const stored = localStorage.getItem(SESSION_KEY);
-  return stored ? (JSON.parse(stored) as ApiSession) : null;
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored) as ApiSession;
+  } catch {
+    logout(false);
+    return null;
+  }
+}
+
+export function hasValidSession(): boolean {
+  const session = readSession();
+  return Boolean(session?.accessToken && session.user?.id);
+}
+
+export function getSessionRole(): ApiUsuario["tipoUsuario"] | null {
+  return readSession()?.user?.tipoUsuario ?? null;
 }
 
 function saveSession(session: ApiSession) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  localStorage.setItem("asilo-user-role", session.user.tipoUsuario === "ADMIN" ? "ADMIN" : "USER");
-  localStorage.setItem("asilo-user-email", session.user.login);
 }
 
 export function getSessionUser(): Usuario | null {
@@ -118,16 +161,19 @@ export function getSessionUser(): Usuario | null {
     : null;
 }
 
-export function getSessionUserId(): number {
+export function getSessionIdentity(): { id: number; login: string } {
   const session = readSession();
-  if (!session) throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
-  return session.user.id;
+  if (!session?.accessToken || !session.user) throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
+  return { id: session.user.id, login: session.user.login };
 }
 
-export function logout() {
+export function logout(notify = true) {
+  const hadSession = localStorage.getItem(SESSION_KEY) !== null;
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem("asilo-user-role");
   localStorage.removeItem("asilo-user-email");
+  if (notify && hadSession) window.dispatchEvent(new Event("auth:logout"));
+  window.dispatchEvent(new Event("api:cache-invalidate"));
 }
 
 async function parseError(response: Response): Promise<ApiError> {
@@ -142,7 +188,7 @@ async function parseError(response: Response): Promise<ApiError> {
   return new ApiError(message || `Erro na API (${response.status}).`, response.status);
 }
 
-async function refreshTokens(): Promise<boolean> {
+async function performRefresh(): Promise<boolean> {
   const session = readSession();
   if (!session?.refreshToken) return false;
 
@@ -153,7 +199,6 @@ async function refreshTokens(): Promise<boolean> {
   });
   if (!response.ok) {
     if (response.status === 400 || response.status === 401) {
-      logout();
       return false;
     }
     throw await parseError(response);
@@ -162,6 +207,15 @@ async function refreshTokens(): Promise<boolean> {
   const tokens = (await response.json()) as Tokens;
   saveSession({ ...session, ...tokens });
   return true;
+}
+
+function refreshTokens(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 }
 
 async function request<T>(
@@ -182,8 +236,14 @@ async function request<T>(
   }
 
   const response = await fetchApi(`${API_URL}${path}`, { ...init, headers });
-  if (response.status === 401 && retryUnauthorized && authenticated && (await refreshTokens())) {
-    return request<T>(path, init, false, authenticated);
+  if (response.status === 401 && retryUnauthorized && authenticated) {
+    if (await refreshTokens()) return request<T>(path, init, false, authenticated);
+    logout();
+    throw new ApiError("Sessão expirada, entre novamente", 401);
+  }
+  if (response.status === 401 && authenticated) {
+    logout();
+    throw new ApiError("Sessão expirada, entre novamente", 401);
   }
   if (!response.ok) throw await parseError(response);
   if (response.status === 204) return undefined as T;
@@ -191,20 +251,26 @@ async function request<T>(
 }
 
 async function allPages<T>(path: string, pageSize: number): Promise<T[]> {
-  const values: T[] = [];
-  let pageNumber = 0;
-  let totalPages = 1;
-
-  while (pageNumber < totalPages) {
-    const separator = path.includes("?") ? "&" : "?";
-    const result = await request<ApiPage<T>>(
-      `${path}${separator}pagina=${pageNumber}&tamanho=${pageSize}`,
-    );
-    values.push(...result.conteudo);
-    totalPages = result.totalPaginas;
-    pageNumber += 1;
-  }
-  return values;
+  const separator = path.includes("?") ? "&" : "?";
+  const firstPage = await request<ApiPage<T>>(`${path}${separator}pagina=0&tamanho=${pageSize}`);
+  if (firstPage.totalPaginas <= 1) return firstPage.conteudo;
+  let loadedPages = 1;
+  window.dispatchEvent(new CustomEvent("api:page-progress", {
+    detail: { loaded: loadedPages, total: firstPage.totalPaginas },
+  }));
+  const remaining = await Promise.all(
+    Array.from({ length: firstPage.totalPaginas - 1 }, (_, index) =>
+      request<ApiPage<T>>(`${path}${separator}pagina=${index + 1}&tamanho=${pageSize}`)
+        .then((page) => {
+          loadedPages += 1;
+          window.dispatchEvent(new CustomEvent("api:page-progress", {
+            detail: { loaded: loadedPages, total: firstPage.totalPaginas },
+          }));
+          return page;
+        }),
+    ),
+  );
+  return [firstPage, ...remaining].flatMap((page) => page.conteudo);
 }
 
 function categoryFromApi(category: ApiCategoria): CategoriaProduto {
@@ -282,6 +348,10 @@ function productFromApi(product: ApiProduto): Produto {
     unidadeMedida: unitFromApi(product.unidadeMedidaProduto),
     quantidadeEstoque: product.quantidadeAtual.valor,
     estoqueMinimo: product.estoqueMinimo.valor,
+    dataValidade: product.dataValidade,
+    estaVencido: product.estaVencido,
+    precisaReposicao: product.precisaReposicao,
+    situacao: product.situacao,
   };
 }
 
@@ -309,15 +379,14 @@ export async function login(login: string, senha: string): Promise<Usuario> {
   saveSession(temporarySession);
 
   try {
-    const user = await request<ApiUsuario>(
-      `/v1/usuarios/me`,
-      { headers: { "X-Usuario-Login": login } },
-    );
+    const user = await request<ApiUsuario>("/v1/usuarios/me", {
+      headers: { "X-Usuario-Login": getSessionIdentity().login },
+    });
     const authenticatedSession = { ...temporarySession, user };
     saveSession(authenticatedSession);
     return userFromApi(user);
   } catch (error) {
-    logout();
+    logout(false);
     throw error;
   }
 }
@@ -332,6 +401,7 @@ export async function createUser(input: {
   login: string;
   senha: string;
   tipoUsuario: "FUNCIONARIO" | "ADMIN";
+  telefone?: string;
 }): Promise<Usuario> {
   const user = await request<ApiUsuario>("/v1/usuarios", {
     method: "POST",
@@ -344,12 +414,18 @@ export function deactivateUser(id: string): Promise<void> {
   return request<void>(`/v1/usuarios/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
-export async function listProducts(): Promise<Produto[]> {
-  const products = await allPages<ApiProduto>("/v1/produtos?situacao=ATIVO", 100);
+export async function listProducts(situacao?: "ATIVO" | "INATIVO"): Promise<Produto[]> {
+  const statusQuery = situacao ? `?situacao=${situacao}` : "";
+  const products = await allPages<ApiProduto>(`/v1/produtos${statusQuery}`, 100);
   return products.map(productFromApi);
 }
 
-export async function createProduct(input: Omit<Produto, "id">): Promise<Produto> {
+export async function getProduct(id: string): Promise<Produto> {
+  const product = await request<ApiProduto>(`/v1/produtos/${encodeURIComponent(id)}`);
+  return productFromApi(product);
+}
+
+export async function createProduct(input: Omit<Produto, "id" | "estaVencido" | "precisaReposicao" | "situacao">): Promise<Produto> {
   const product = await request<ApiProduto>("/v1/produtos", {
     method: "POST",
     body: JSON.stringify({
@@ -359,12 +435,14 @@ export async function createProduct(input: Omit<Produto, "id">): Promise<Produto
       unidadeMedida: unitToApi(input.unidadeMedida),
       categoria: categoryToApi(input.categoria),
       situacao: "ATIVO",
+      dataValidade: input.dataValidade || undefined,
     }),
   });
+  window.dispatchEvent(new Event("api:cache-invalidate"));
   return productFromApi(product);
 }
 
-export async function updateProduct(id: string, input: Omit<Produto, "id" | "quantidadeEstoque">): Promise<Produto> {
+export async function updateProduct(id: string, input: Omit<Produto, "id" | "quantidadeEstoque" | "estaVencido" | "precisaReposicao" | "situacao">): Promise<Produto> {
   const product = await request<ApiProduto>(`/v1/produtos/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -372,13 +450,21 @@ export async function updateProduct(id: string, input: Omit<Produto, "id" | "qua
       estoqueMinimo: input.estoqueMinimo,
       unidadeMedida: unitToApi(input.unidadeMedida),
       categoria: categoryToApi(input.categoria),
+      dataValidade: input.dataValidade || undefined,
     }),
   });
+  window.dispatchEvent(new Event("api:cache-invalidate"));
   return productFromApi(product);
 }
 
 export function deactivateProduct(id: string): Promise<void> {
-  return request<void>(`/v1/produtos/${encodeURIComponent(id)}`, { method: "DELETE" });
+  return request<void>(`/v1/produtos/${encodeURIComponent(id)}`, { method: "DELETE" })
+    .then(() => { window.dispatchEvent(new Event("api:cache-invalidate")); });
+}
+
+export function activateProduct(id: string): Promise<void> {
+  return request<void>(`/v1/produtos/${encodeURIComponent(id)}/ativar`, { method: "PATCH" })
+    .then(() => { window.dispatchEvent(new Event("api:cache-invalidate")); });
 }
 
 export async function listMovements(productId?: string): Promise<ApiMovimentacao[]> {
@@ -395,9 +481,14 @@ export function createMovement(input: {
   valorCompra?: number;
   residenteNome?: string;
 }): Promise<ApiMovimentacao> {
+  const { id: usuarioId } = getSessionIdentity();
+  if (!usuarioId) throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
   return request<ApiMovimentacao>("/v1/movimentacao", {
     method: "POST",
-    body: JSON.stringify({ ...input, produtoId: Number(input.produtoId), usuarioId: getSessionUserId() }),
+    body: JSON.stringify({ ...input, produtoId: Number(input.produtoId), usuarioId }),
+  }).then((movement) => {
+    window.dispatchEvent(new Event("api:cache-invalidate"));
+    return movement;
   });
 }
 
@@ -405,17 +496,18 @@ export async function downloadMovementsCsv(dataInicio: string, dataFim: string, 
   const query = new URLSearchParams({ tipo, dataInicio, dataFim });
   const session = readSession();
   if (!session?.accessToken) throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
-  const response = await fetchApi(`${API_URL}/v1/relatorios/movimentacoes/csv?${query}`, {
-    headers: { Authorization: `${session?.tokenType || "Bearer"} ${session?.accessToken || ""}` },
-  });
-  if (response.status === 401 && (await refreshTokens())) {
-    const refreshedSession = readSession();
-    const retryResponse = await fetchApi(`${API_URL}/v1/relatorios/movimentacoes/csv?${query}`, {
-      headers: { Authorization: `${refreshedSession?.tokenType || "Bearer"} ${refreshedSession?.accessToken || ""}` },
+  const fetchCsv = async (retry: boolean): Promise<Response> => {
+    const currentSession = readSession();
+    const response = await fetchApi(`${API_URL}/v1/relatorios/movimentacoes/csv?${query}`, {
+      headers: { Authorization: `${currentSession?.tokenType || "Bearer"} ${currentSession?.accessToken || ""}` },
     });
-    if (!retryResponse.ok) throw await parseError(retryResponse);
-    return retryResponse.blob();
-  }
-  if (!response.ok) throw await parseError(response);
-  return response.blob();
+    if (response.status === 401 && retry && await refreshTokens()) return fetchCsv(false);
+    if (response.status === 401) {
+      logout();
+      throw new ApiError("Sessão expirada, entre novamente", 401);
+    }
+    if (!response.ok) throw await parseError(response);
+    return response;
+  };
+  return (await fetchCsv(true)).blob();
 }

@@ -1,62 +1,65 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import type { Usuario } from "../types";
-import { createUser, deactivateUser, listUsers } from "../services/api";
+import { createUser, deactivateUser, getSessionRole, listUsers } from "../services/api";
 
 export default function GerenciarLogins() {
-  const [role, setRole] = useState<string | null>(null);
   const [listaUsuarios, setListaUsuarios] = useState<Usuario[]>([]);
   const [mostrarCadastro, setMostrarCadastro] = useState(false);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [cargo, setCargo] = useState<"ADMIN" | "USER">("USER");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    setRole(localStorage.getItem("asilo-user-role"));
-  }, []);
-
-  useEffect(() => {
-    if (role !== "ADMIN") return;
+    if (getSessionRole() !== "ADMIN") return;
     setCarregando(true);
     listUsers()
       .then(setListaUsuarios)
       .catch((error: unknown) => setErro(error instanceof Error ? error.message : "Não foi possível carregar os usuários."))
       .finally(() => setCarregando(false));
-  }, [role]);
-
-  if (role === null) {
-    return null;
-  }
-
-  if (role !== "ADMIN") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  }, []);
 
   async function cadastrarUsuario() {
-    if (!nome.trim() || !email.trim() || !senha.trim()) {
+    const nomeLimpo = nome.trim();
+    const telefoneLimpo = telefone.trim();
+    if (!nomeLimpo || !email.trim() || !senha.trim()) {
       setErro("Preencha nome, login e senha.");
+      return;
+    }
+    if (!/^[a-zA-ZÀ-ÿ\s]{3,100}$/.test(nomeLimpo)) {
+      setErro("O nome deve ter de 3 a 100 caracteres e conter apenas letras e espaços.");
+      return;
+    }
+    if (senha.length < 6) {
+      setErro("A senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+    if (telefoneLimpo && !/^\d{2}9?\d{8}$/.test(telefoneLimpo)) {
+      setErro("Informe um telefone válido com DDD, somente números.");
       return;
     }
     setErro("");
     setSalvando(true);
     try {
       const novoUsuario = await createUser({
-        nome: nome.trim(),
+        nome: nomeLimpo,
         login: email.trim(),
         senha,
         tipoUsuario: cargo === "ADMIN" ? "ADMIN" : "FUNCIONARIO",
+        telefone: telefoneLimpo || undefined,
       });
       setListaUsuarios((usuariosAtuais) => [novoUsuario, ...usuariosAtuais]);
       setNome("");
       setEmail("");
       setSenha("");
+      setTelefone("");
       setCargo("USER");
       setMostrarCadastro(false);
     } catch (error) {
@@ -111,10 +114,18 @@ export default function GerenciarLogins() {
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-0 focus:border-blue-500"
             />
             <input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="Telefone (opcional)"
+              inputMode="tel"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-0 focus:border-blue-500"
+            />
+            <input
               type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               placeholder="Senha"
+              autoComplete="new-password"
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-0 focus:border-blue-500"
             />
             <div className="flex gap-2">

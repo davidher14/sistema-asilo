@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import institutionLogo from "../../../logo inst.jpg";
-import { logout } from "../../services/api";
+import institutionLogo from "../../assets/logo-inst.jpg";
+import { getSessionRole, getSessionUser, logout } from "../../services/api";
 
 const menuItems = [
   {
@@ -52,7 +52,8 @@ const menuItems = [
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const isAdmin = localStorage.getItem("asilo-user-role") === "ADMIN";
+  const isAdmin = getSessionRole() === "ADMIN";
+  const sessionUser = getSessionUser();
   const visibleMenuItems = isAdmin
     ? [
         ...menuItems,
@@ -102,12 +103,12 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={() => {
-            logout();
-            navigate("/");
+            logout(false);
+            navigate("/", { replace: true });
           }}
           className="mb-3 w-full rounded-lg border border-white/15 px-3 py-2 text-left text-sm text-blue-100/80 transition-colors hover:bg-white/5 hover:text-white"
         >
-          Sair ({localStorage.getItem("asilo-user-email") || "conta"})
+          Sair ({sessionUser?.email || "conta"})
         </button>
         <p className="text-xs text-gray-400">36 idosos · Comunidade Japonesa</p>
         <p className="mt-0.5 text-xs text-gray-500">v0.1 – Protótipo 2026</p>

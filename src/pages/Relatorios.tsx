@@ -4,7 +4,9 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import Table, { type Column } from "../components/ui/Table";
 import type { Produto } from "../types";
-import { downloadMovementsCsv, listMovements, listProducts, type ApiMovimentacao } from "../services/api";
+import { downloadMovementsCsv, type ApiMovimentacao } from "../services/api";
+import { loadInventoryData } from "../data/inventoryCache";
+import { formatLocalDate, toLocalDateKey } from "../utils/helpers";
 
 type TipoRelatorio = "GERAL" | "DOACOES" | "COMPRAS" | "SAIDA_RESIDENTE" | "SAIDA_PERDA";
 
@@ -44,10 +46,10 @@ export default function Relatorios() {
   const [exportando, setExportando] = useState(false);
 
   useEffect(() => {
-    Promise.all([listProducts(), listMovements()])
-      .then(([listaProdutos, listaMovimentacoes]) => {
-        setProdutos(listaProdutos);
-        setMovimentacoes(listaMovimentacoes);
+    loadInventoryData()
+      .then(({ products, movements }) => {
+        setProdutos(products);
+        setMovimentacoes(movements);
       })
       .catch((error: unknown) => setErro(error instanceof Error ? error.message : "Não foi possível carregar o relatório."))
       .finally(() => setCarregando(false));
@@ -57,11 +59,17 @@ export default function Relatorios() {
   const inicio = new Date();
   inicio.setDate(inicio.getDate() - Number(periodo));
   const dataInicio = formatDateInput(inicio);
-  const produtoPorId = new Map(produtos.map((produto) => [Number(produto.id), produto]));
+  const produtoPorId = useMemo(
+    () => new Map(produtos.map((produto) => [Number(produto.id), produto])),
+    [produtos],
+  );
 
   const linhas = useMemo<LinhaRelatorio[]>(() => {
     return movimentacoes
-      .filter((item) => item.dataHora.slice(0, 10) >= dataInicio && item.dataHora.slice(0, 10) <= dataFim)
+      .filter((item) => {
+        const dateKey = toLocalDateKey(item.dataHora);
+        return dateKey >= dataInicio && dateKey <= dataFim;
+      })
       .filter((item) => tipo === "GERAL" || item.tipoMovimentacao === ({
         DOACOES: "ENTRADA_DOACAO",
         COMPRAS: "ENTRADA_COMPRA",
@@ -72,7 +80,7 @@ export default function Relatorios() {
       .map((item) => ({
         id: String(item.id),
         produto: item.produtoNome,
-        categoria: produtoPorId.get(item.produtoId)?.categoria ?? "Outros",
+        categoria: produtoPorId.get(item.produtoId)?.categoria ?? item.produtoNome,
         tipo: movementLabel(item),
         quantidade: item.quantidade,
         data: item.dataHora,
@@ -91,6 +99,10 @@ export default function Relatorios() {
 
   async function exportarCsv() {
     setErro("");
+    if (dataInicio > dataFim) {
+      setErro("A data inicial deve ser anterior ou igual à data final.");
+      return;
+    }
     setExportando(true);
     try {
       const blob = await downloadMovementsCsv(dataInicio, dataFim, tipo);
@@ -110,7 +122,7 @@ export default function Relatorios() {
   }
 
   const columns: Column<LinhaRelatorio>[] = [
-    { key: "data", header: "Data", render: (item) => <span className="text-gray-500">{new Date(item.data).toLocaleDateString("pt-BR")}</span> },
+    { key: "data", header: "Data", render: (item) => <span className="text-gray-500">{formatLocalDate(item.data)}</span> },
     { key: "produto", header: "Produto", render: (item) => <span className="font-semibold text-gray-800">{item.produto}</span> },
     { key: "categoria", header: "Categoria", render: (item) => <Badge variant="gray">{item.categoria}</Badge> },
     { key: "tipo", header: "Tipo", render: (item) => item.tipo },

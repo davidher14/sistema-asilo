@@ -38,6 +38,10 @@ export interface Produto {
   unidadeMedida: UnidadeMedida;
   quantidadeEstoque: number;
   estoqueMinimo: number;
+  dataValidade?: string;
+  estaVencido: boolean;
+  precisaReposicao: boolean;
+  situacao: "ATIVO" | "INATIVO";
 }
 
 export type TipoEntrada = "COMPRA" | "DOACAO";

@@ -2,8 +2,12 @@ node_modules/
 dist/
 .env
 .env.*
+!.env.example
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+meu-projeto/
 .DS_Store
 .vscode/
 # npm
 npm-debug.log*
-node_modules/dist/.env.env.*

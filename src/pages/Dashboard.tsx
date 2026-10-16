@@ -3,11 +3,9 @@ import Layout from "../components/layout/Layout";
 import StatCard from "../components/ui/StatCard";
 import Badge from "../components/ui/Badge";
 import type { Produto } from "../types";
-import { listMovements, listProducts, type ApiMovimentacao } from "../services/api";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
-}
+import { loadInventoryData } from "../data/inventoryCache";
+import type { ApiMovimentacao } from "../services/api";
+import { formatLocalDateTime } from "../utils/helpers";
 
 export default function Dashboard() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -16,16 +14,18 @@ export default function Dashboard() {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    Promise.all([listProducts(), listMovements()])
-      .then(([listaProdutos, listaMovimentacoes]) => {
-        setProdutos(listaProdutos);
-        setMovimentacoes(listaMovimentacoes);
+    loadInventoryData()
+      .then(({ products, movements }) => {
+        setProdutos(products);
+        setMovimentacoes(movements);
       })
       .catch((error: unknown) => setErro(error instanceof Error ? error.message : "Não foi possível carregar o painel."))
       .finally(() => setCarregando(false));
   }, []);
 
-  const estoqueBaixo = produtos.filter((produto) => produto.quantidadeEstoque < produto.estoqueMinimo).length;
+  const estoqueBaixo = produtos.filter((produto) => produto.precisaReposicao).length;
+  const vencidos = produtos.filter((produto) => produto.situacao === "ATIVO" && produto.estaVencido);
+  const paraReposicao = produtos.filter((produto) => produto.situacao === "ATIVO" && produto.precisaReposicao);
   const totalEntradas = movimentacoes
     .filter((item) => item.tipoMovimentacao === "ENTRADA_COMPRA" || item.tipoMovimentacao === "ENTRADA_DOACAO")
     .reduce((total, item) => total + item.quantidade, 0);
@@ -39,7 +39,7 @@ export default function Dashboard() {
     movimentacoes
       .filter((item) => item.tipoMovimentacao === "SAIDA_CONSUMO")
       .forEach((item) => {
-        const category = categoriaPorProduto.get(item.produtoId) ?? "Outros";
+        const category = categoriaPorProduto.get(item.produtoId) ?? item.produtoNome ?? "Outros";
         totals.set(category, (totals.get(category) ?? 0) + item.quantidade);
       });
     return [...totals.entries()].map(([nome, valor]) => ({ nome, valor })).sort((a, b) => b.valor - a.valor);
@@ -54,12 +54,20 @@ export default function Dashboard() {
     <Layout title="Dashboard" subtitle="Visão geral do estoque e das movimentações" alertCount={estoqueBaixo}>
       {erro && <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Produtos cadastrados" value={carregando ? "—" : produtos.length} color="blue" icon="▣" hint="Produtos ativos" />
+        <StatCard label="Produtos cadastrados" value={carregando ? "—" : produtos.filter((p) => p.situacao === "ATIVO").length} color="blue" icon="▣" hint="Produtos ativos" />
         <StatCard label="Alertas de estoque baixo" value={carregando ? "—" : estoqueBaixo} color="red" icon="!" hint="Abaixo do mínimo" />
         <StatCard label="Itens em entrada" value={carregando ? "—" : totalEntradas} color="green" icon="↑" hint="Todas as entradas" />
         <StatCard label="Itens em saída" value={carregando ? "—" : totalSaidas} color="purple" icon="↓" hint="Consumo e perdas" />
       </div>
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-gray-800">Itens vencidos ({vencidos.length})</h3>
+          {vencidos.length === 0 ? <p className="mt-3 text-sm text-gray-400">Nenhum item vencido.</p> : <ul className="mt-3 space-y-2">{vencidos.map((p) => <li key={p.id} className="text-sm text-red-700">{p.nome}</li>)}</ul>}
+        </section>
+        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-gray-800">Repor estoque ({paraReposicao.length})</h3>
+          {paraReposicao.length === 0 ? <p className="mt-3 text-sm text-gray-400">Nenhum item precisa de reposição.</p> : <ul className="mt-3 space-y-2">{paraReposicao.map((p) => <li key={p.id} className="text-sm text-amber-700">{p.nome}</li>)}</ul>}
+        </section>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-bold text-gray-800">Consumo por categoria</h3>
           <p className="text-xs text-gray-400">Saídas classificadas como consumo</p>
@@ -97,7 +105,7 @@ export default function Dashboard() {
                   <div key={item.id} className="flex items-center justify-between gap-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{item.produtoNome}</p>
-                      <p className="text-xs text-gray-400">{tipoLabel} · {formatDate(item.dataHora)}</p>
+                      <p className="text-xs text-gray-400">{tipoLabel} · {formatLocalDateTime(item.dataHora)}</p>
                     </div>
                     <span className={`text-sm font-bold tabular-nums ${entrada ? "text-emerald-600" : "text-red-600"}`}>
                       {entrada ? "+" : "−"}{item.quantidade}

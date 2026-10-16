@@ -5,11 +5,9 @@ import Button from "../components/ui/Button";
 import Table, { type Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import type { Produto } from "../types";
-import { createMovement, listMovements, listProducts, type ApiMovimentacao } from "../services/api";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
-}
+import { createMovement, type ApiMovimentacao } from "../services/api";
+import { loadInventoryData } from "../data/inventoryCache";
+import { formatLocalDateTime, parseLocalizedNumber, positiveQuantityError } from "../utils/helpers";
 
 export default function Entradas() {
   const [busca, setBusca] = useState("");
@@ -25,14 +23,16 @@ export default function Entradas() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [erroQuantidade, setErroQuantidade] = useState("");
+  const [erroValor, setErroValor] = useState("");
 
   async function carregarDados() {
-    const [listaProdutos, listaMovimentacoes] = await Promise.all([listProducts(), listMovements()]);
-    setProdutos(listaProdutos);
+    const { products: listaProdutos, movements: listaMovimentacoes } = await loadInventoryData();
+    setProdutos(listaProdutos.filter((produto) => produto.situacao === "ATIVO"));
     setMovimentacoes(listaMovimentacoes.filter((item) =>
       item.tipoMovimentacao === "ENTRADA_COMPRA" || item.tipoMovimentacao === "ENTRADA_DOACAO",
     ));
-    setProdutoId((atual) => atual || listaProdutos[0]?.id || "");
+    setProdutoId((atual) => atual || listaProdutos.find((produto) => produto.situacao === "ATIVO")?.id || "");
   }
 
   useEffect(() => {
@@ -54,15 +54,26 @@ export default function Entradas() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setErro("");
+    const unidade = produtos.find((produto) => produto.id === produtoId)?.unidadeMedida ?? "";
+    const invalidQuantity = positiveQuantityError(quantidade, unidade);
+    const amount = parseLocalizedNumber(quantidade);
+    const price = valorCompra.trim() ? parseLocalizedNumber(valorCompra) : undefined;
+    const invalidPrice = price !== undefined && (!Number.isFinite(price) || price < 0);
+    setErroQuantidade(invalidQuantity);
+    setErroValor(invalidPrice ? "Informe um valor válido maior ou igual a zero." : "");
+    if (invalidQuantity || invalidPrice || (tipo === "ENTRADA_DOACAO" && !doadorNome.trim())) {
+      setErro(tipo === "ENTRADA_DOACAO" && !doadorNome.trim() ? "Informe o nome do doador." : "");
+      return;
+    }
     setSalvando(true);
     try {
       await createMovement({
         produtoId,
         tipoMovimentacao: tipo,
-        quantidade: Number(quantidade),
+        quantidade: amount,
         doadorNome: tipo === "ENTRADA_DOACAO" ? doadorNome.trim() || undefined : undefined,
         cidade: tipo === "ENTRADA_DOACAO" ? cidade.trim() || undefined : undefined,
-        valorCompra: tipo === "ENTRADA_COMPRA" && valorCompra ? Number(valorCompra) : undefined,
+        valorCompra: tipo === "ENTRADA_COMPRA" ? price : undefined,
       });
       await carregarDados();
       setModalAberto(false);
@@ -78,7 +89,7 @@ export default function Entradas() {
   }
 
   const columns: Column<ApiMovimentacao>[] = [
-    { key: "data", header: "Data", render: (item) => <span className="text-gray-500">{formatDate(item.dataHora)}</span> },
+    { key: "data", header: "Data", render: (item) => <span className="text-gray-500">{formatLocalDateTime(item.dataHora)}</span> },
     { key: "produto", header: "Produto", render: (item) => <span className="font-semibold text-gray-800">{item.produtoNome}</span> },
     { key: "tipo", header: "Tipo", render: (item) => item.tipoMovimentacao === "ENTRADA_COMPRA" ? "Compra" : "Doação" },
     { key: "quantidade", header: "Quantidade", align: "right", render: (item) => <span className="font-bold text-emerald-600">+{item.quantidade}</span> },
@@ -113,13 +124,14 @@ export default function Entradas() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantidade</label>
-              <input type="number" min="0.01" step="any" value={quantidade} onChange={(event) => setQuantidade(event.target.value)} required className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+              <input inputMode="decimal" value={quantidade} onChange={(event) => { setQuantidade(event.target.value); setErroQuantidade(""); }} required aria-invalid={Boolean(erroQuantidade)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+              {erroQuantidade && <p className="mt-1 text-xs text-red-600">{erroQuantidade}</p>}
             </div>
             {tipo === "ENTRADA_DOACAO" ? (
               <>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-gray-700">Doador</label>
-                  <input value={doadorNome} onChange={(event) => setDoadorNome(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+                  <input value={doadorNome} onChange={(event) => setDoadorNome(event.target.value)} required className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-gray-700">Cidade</label>
@@ -129,7 +141,8 @@ export default function Entradas() {
             ) : (
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700">Valor da compra (R$)</label>
-                <input type="number" min="0" step="0.01" value={valorCompra} onChange={(event) => setValorCompra(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+                <input inputMode="decimal" value={valorCompra} onChange={(event) => { setValorCompra(event.target.value); setErroValor(""); }} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
+                {erroValor && <p className="mt-1 text-xs text-red-600">{erroValor}</p>}
               </div>
             )}
             <div className="flex justify-end gap-3 pt-2">

@@ -24,7 +24,6 @@ export default function Dashboard() {
   }, []);
 
   const estoqueBaixo = produtos.filter((produto) => produto.precisaReposicao).length;
-  const vencidos = produtos.filter((produto) => produto.situacao === "ATIVO" && produto.estaVencido);
   const paraReposicao = produtos.filter((produto) => produto.situacao === "ATIVO" && produto.precisaReposicao);
   const totalEntradas = movimentacoes
     .filter((item) => item.tipoMovimentacao === "ENTRADA_COMPRA" || item.tipoMovimentacao === "ENTRADA_DOACAO")
@@ -60,10 +59,6 @@ export default function Dashboard() {
         <StatCard label="Itens em saída" value={carregando ? "—" : totalSaidas} color="purple" icon="↓" hint="Consumo e perdas" />
       </div>
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-gray-800">Itens vencidos ({vencidos.length})</h3>
-          {vencidos.length === 0 ? <p className="mt-3 text-sm text-gray-400">Nenhum item vencido.</p> : <ul className="mt-3 space-y-2">{vencidos.map((p) => <li key={p.id} className="text-sm text-red-700">{p.nome}</li>)}</ul>}
-        </section>
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-bold text-gray-800">Repor estoque ({paraReposicao.length})</h3>
           {paraReposicao.length === 0 ? <p className="mt-3 text-sm text-gray-400">Nenhum item precisa de reposição.</p> : <ul className="mt-3 space-y-2">{paraReposicao.map((p) => <li key={p.id} className="text-sm text-amber-700">{p.nome}</li>)}</ul>}

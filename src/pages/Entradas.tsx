@@ -7,7 +7,7 @@ import Modal from "../components/ui/Modal";
 import type { Produto } from "../types";
 import { createMovement, type ApiMovimentacao } from "../services/api";
 import { loadInventoryData } from "../data/inventoryCache";
-import { formatLocalDateTime, parseLocalizedNumber, positiveQuantityError } from "../utils/helpers";
+import { formatLocalDate, formatLocalDateTime, parseLocalizedNumber, positiveQuantityError } from "../utils/helpers";
 
 export default function Entradas() {
   const [busca, setBusca] = useState("");
@@ -17,6 +17,7 @@ export default function Entradas() {
   const [produtoId, setProdutoId] = useState("");
   const [tipo, setTipo] = useState<"ENTRADA_COMPRA" | "ENTRADA_DOACAO">("ENTRADA_COMPRA");
   const [quantidade, setQuantidade] = useState("");
+  const [dataValidade, setDataValidade] = useState("");
   const [doadorNome, setDoadorNome] = useState("");
   const [cidade, setCidade] = useState("");
   const [valorCompra, setValorCompra] = useState("");
@@ -71,6 +72,7 @@ export default function Entradas() {
         produtoId,
         tipoMovimentacao: tipo,
         quantidade: amount,
+        dataValidade: dataValidade || undefined,
         doadorNome: tipo === "ENTRADA_DOACAO" ? doadorNome.trim() || undefined : undefined,
         cidade: tipo === "ENTRADA_DOACAO" ? cidade.trim() || undefined : undefined,
         valorCompra: tipo === "ENTRADA_COMPRA" ? price : undefined,
@@ -78,6 +80,7 @@ export default function Entradas() {
       await carregarDados();
       setModalAberto(false);
       setQuantidade("");
+      setDataValidade("");
       setDoadorNome("");
       setCidade("");
       setValorCompra("");
@@ -93,6 +96,7 @@ export default function Entradas() {
     { key: "produto", header: "Produto", render: (item) => <span className="font-semibold text-gray-800">{item.produtoNome}</span> },
     { key: "tipo", header: "Tipo", render: (item) => item.tipoMovimentacao === "ENTRADA_COMPRA" ? "Compra" : "Doação" },
     { key: "quantidade", header: "Quantidade", align: "right", render: (item) => <span className="font-bold text-emerald-600">+{item.quantidade}</span> },
+    { key: "lote", header: "Lote / validade", render: (item) => <span>#{item.id}{item.dataValidade && <span className="block text-xs text-gray-500">Val.: {formatLocalDate(item.dataValidade)}</span>}</span> },
     { key: "doador", header: "Doador / valor", render: (item) => item.tipoMovimentacao === "ENTRADA_DOACAO" ? item.doadorNome ?? "—" : item.valorCompra == null ? "—" : item.valorCompra.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) },
     { key: "cidade", header: "Cidade", render: (item) => <span className="text-gray-500">{item.cidade ?? "—"}</span> },
   ];
@@ -126,6 +130,10 @@ export default function Entradas() {
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantidade</label>
               <input inputMode="decimal" value={quantidade} onChange={(event) => { setQuantidade(event.target.value); setErroQuantidade(""); }} required aria-invalid={Boolean(erroQuantidade)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
               {erroQuantidade && <p className="mt-1 text-xs text-red-600">{erroQuantidade}</p>}
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Data de validade (opcional)</label>
+              <input type="date" value={dataValidade} onChange={(event) => setDataValidade(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
             </div>
             {tipo === "ENTRADA_DOACAO" ? (
               <>

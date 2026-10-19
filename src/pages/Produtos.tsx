@@ -5,7 +5,7 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import Modal from "../components/ui/Modal";
 import type { CategoriaProduto, Produto, UnidadeMedida } from "../types";
-import { getCategoriaVariant, parseLocalizedNumber, positiveQuantityError } from "../utils/helpers";
+import { getCategoriaVariant, parseLocalizedNumber } from "../utils/helpers";
 import { activateProduct, createProduct, deactivateProduct, listProducts, updateProduct } from "../services/api";
 
 const categorias: Array<"Todos" | CategoriaProduto> = ["Todos", "Alimentos", "Enfermagem / Higiene", "Limpeza", "Medicamentos", "Manutenção", "Outros"];
@@ -21,14 +21,11 @@ export default function Produtos() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mostrarInativos, setMostrarInativos] = useState(false);
-  const [dataValidade, setDataValidade] = useState("");
-  const [erroQuantidade, setErroQuantidade] = useState("");
   const [erroMinimo, setErroMinimo] = useState("");
 
   const [nome, setNome] = useState("");
   const [categoriaForm, setCategoriaForm] = useState<CategoriaProduto>("Enfermagem / Higiene");
   const [unidade, setUnidade] = useState<UnidadeMedida>("unidade");
-  const [quantidade, setQuantidade] = useState("");
   const [minimo, setMinimo] = useState("");
 
   useEffect(() => {
@@ -57,17 +54,16 @@ export default function Produtos() {
 
   function abrirNovoProduto() {
     setProdutoEditando(null);
-    setNome(""); setCategoriaForm("Enfermagem / Higiene"); setUnidade("unidade"); setQuantidade(""); setMinimo(""); setDataValidade("");
-    setErroQuantidade(""); setErroMinimo("");
+    setNome(""); setCategoriaForm("Enfermagem / Higiene"); setUnidade("unidade"); setMinimo("");
+    setErroMinimo("");
     setModalAberto(true);
   }
 
   function abrirEdicao(produto: Produto) {
     setProdutoEditando(produto);
     setNome(produto.nome); setCategoriaForm(produto.categoria); setUnidade(produto.unidadeMedida);
-    setQuantidade(String(produto.quantidadeEstoque)); setMinimo(String(produto.estoqueMinimo));
-    setDataValidade(produto.dataValidade ?? "");
-    setErroQuantidade(""); setErroMinimo("");
+    setMinimo(String(produto.estoqueMinimo));
+    setErroMinimo("");
     setModalAberto(true);
   }
 
@@ -77,15 +73,12 @@ export default function Produtos() {
     const minimum = parseLocalizedNumber(minimo);
     const invalidMinimum = !minimo.trim() || !Number.isFinite(minimum) || minimum < 0 ||
       (unidade === "unidade" && !Number.isInteger(minimum));
-    const invalidQuantity = produtoEditando ? "" : positiveQuantityError(quantidade, unidade);
-    const initialQuantity = parseLocalizedNumber(quantidade);
     setErroMinimo(invalidMinimum
       ? unidade === "unidade" && Number.isFinite(minimum) && !Number.isInteger(minimum)
         ? "Para unidade, informe um número inteiro maior ou igual a zero."
         : "Informe um valor válido maior ou igual a zero."
       : "");
-    setErroQuantidade(invalidQuantity);
-    if (!nome.trim() || invalidMinimum || invalidQuantity) return;
+    if (!nome.trim() || invalidMinimum) return;
     setSalvando(true);
     try {
       if (produtoEditando) {
@@ -94,7 +87,6 @@ export default function Produtos() {
           categoria: categoriaForm,
           unidadeMedida: unidade,
           estoqueMinimo: minimum,
-          dataValidade: dataValidade || undefined,
         });
         setProdutos((atual) => atual.map((produto) => produto.id === updated.id ? updated : produto));
       } else {
@@ -102,9 +94,7 @@ export default function Produtos() {
           nome: nome.trim(),
           categoria: categoriaForm,
           unidadeMedida: unidade,
-          quantidadeEstoque: initialQuantity,
           estoqueMinimo: minimum,
-          dataValidade: dataValidade || undefined,
         });
         setProdutos((atual) => [created, ...atual]);
       }
@@ -141,7 +131,7 @@ export default function Produtos() {
         {!mostrarInativos && <Button className="lg:ml-auto" onClick={abrirNovoProduto}><span className="text-lg leading-none">+</span> Adicionar produto</Button>}
       </div>
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm"><table className="w-full min-w-[850px] text-left text-sm"><thead><tr className="border-b border-gray-200 bg-gray-50 text-[11px] uppercase tracking-wider text-[#35517f]">{["Produto", "Categoria", "Quantidade", "Status", "Estoque mínimo", "Ações"].map((header) => <th key={header} className="px-4 py-3 font-semibold">{header}</th>)}</tr></thead><tbody>
-        {carregando ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Carregando produtos...</td></tr> : produtosFiltrados.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Nenhum produto encontrado.</td></tr> : produtosFiltrados.map((produto) => { const status = produto.quantidadeEstoque === 0 ? "Esgotado" : produto.precisaReposicao ? "Faltando" : "Em estoque"; const statusStyle = status === "Em estoque" ? "border-emerald-200 bg-emerald-50 text-emerald-600" : status === "Faltando" ? "border-amber-200 bg-amber-50 text-amber-600" : "border-red-200 bg-red-50 text-red-500"; return <tr key={produto.id} className="border-b border-gray-100 last:border-0 hover:bg-blue-50/30"><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.nome}<div className="mt-1 flex gap-1">{produto.estaVencido && <Badge variant="red">Vencido</Badge>}{produto.precisaReposicao && <Badge variant="orange">Repor estoque</Badge>}</div></td><td className="px-4 py-4"><Badge variant={getCategoriaVariant(produto.categoria)}>{produto.categoria}</Badge></td><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.quantidadeEstoque} <span className="text-xs font-normal text-gray-500">{produto.unidadeMedida}</span></td><td className="px-4 py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusStyle}`}>{mostrarInativos ? "Inativo" : status}</span></td><td className="px-4 py-4 text-gray-500">{produto.estoqueMinimo} {produto.unidadeMedida}</td><td className="px-4 py-4"><div className="flex gap-2">{mostrarInativos ? <Button size="sm" disabled={salvando} onClick={async () => { setSalvando(true); try { await activateProduct(produto.id); setProdutos((items) => items.filter((item) => item.id !== produto.id)); } catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível reativar o produto."); } finally { setSalvando(false); } }}>Reativar</Button> : <><button onClick={() => abrirEdicao(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-[#204895] hover:bg-blue-100" aria-label={`Editar ${produto.nome}`} title="Editar">✎</button><button onClick={() => setProdutoExcluindo(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100" aria-label={`Desativar ${produto.nome}`} title="Desativar">⌫</button></>}</div></td></tr>; })}
+        {carregando ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Carregando produtos...</td></tr> : produtosFiltrados.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Nenhum produto encontrado.</td></tr> : produtosFiltrados.map((produto) => { const status = produto.quantidadeEstoque === 0 ? "Esgotado" : produto.precisaReposicao ? "Faltando" : "Em estoque"; const statusStyle = status === "Em estoque" ? "border-emerald-200 bg-emerald-50 text-emerald-600" : status === "Faltando" ? "border-amber-200 bg-amber-50 text-amber-600" : "border-red-200 bg-red-50 text-red-500"; return <tr key={produto.id} className="border-b border-gray-100 last:border-0 hover:bg-blue-50/30"><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.nome}<div className="mt-1 flex gap-1">        {produto.precisaReposicao && <Badge variant="orange">Repor estoque</Badge>}</div></td><td className="px-4 py-4"><Badge variant={getCategoriaVariant(produto.categoria)}>{produto.categoria}</Badge></td><td className="px-4 py-4 font-semibold text-[#172b55]">{produto.quantidadeEstoque} <span className="text-xs font-normal text-gray-500">{produto.unidadeMedida}</span></td><td className="px-4 py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusStyle}`}>{mostrarInativos ? "Inativo" : status}</span></td><td className="px-4 py-4 text-gray-500">{produto.estoqueMinimo} {produto.unidadeMedida}</td><td className="px-4 py-4"><div className="flex gap-2">{mostrarInativos ? <Button size="sm" disabled={salvando} onClick={async () => { setSalvando(true); try { await activateProduct(produto.id); setProdutos((items) => items.filter((item) => item.id !== produto.id)); } catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível reativar o produto."); } finally { setSalvando(false); } }}>Reativar</Button> : <><button onClick={() => abrirEdicao(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-[#204895] hover:bg-blue-100" aria-label={`Editar ${produto.nome}`} title="Editar">✎</button><button onClick={() => setProdutoExcluindo(produto)} className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100" aria-label={`Desativar ${produto.nome}`} title="Desativar">⌫</button></>}</div></td></tr>; })}
       </tbody></table></div>
 
       {modalAberto && (
@@ -192,20 +182,9 @@ export default function Produtos() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantidade inicial</label>
-                <input
-                  inputMode="decimal"
-                  value={quantidade}
-                  onChange={(e) => { setQuantidade(e.target.value); setErroQuantidade(""); }}
-                  placeholder="0"
-                  disabled={Boolean(produtoEditando)}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                  required
-                />
-                {erroQuantidade && <p className="mt-1 text-xs text-red-600">{erroQuantidade}</p>}
-              </div>
+            <div>
+              {!produtoEditando && <p className="mb-4 text-xs text-gray-500">O estoque começa zerado. Registre cada quantidade recebida em Entradas para informar lote e validade.</p>}
+              {produtoEditando && <p className="mb-4 text-xs text-gray-500">A quantidade em estoque é atualizada ao registrar entradas e saídas.</p>}
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700">Estoque mínimo</label>
                 <input
@@ -219,18 +198,12 @@ export default function Produtos() {
                 {erroMinimo && <p className="mt-1 text-xs text-red-600">{erroMinimo}</p>}
               </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Data de validade (opcional)</label>
-              <input type="date" value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800" />
-            </div>
-            {!produtoEditando && <p className="text-xs text-amber-700">O saldo inicial não será registrado como entrada nos relatórios.</p>}
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={() => setModalAberto(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={salvando}>{salvando ? "Salvando..." : "Salvar produto"}</Button>
             </div>
-            {produtoEditando && <p className="text-xs text-gray-500">A quantidade em estoque é atualizada ao registrar entradas e saídas.</p>}
           </form>
         </Modal>
       )}

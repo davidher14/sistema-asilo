@@ -43,8 +43,6 @@ interface ApiProduto {
   estoqueMinimo: { valor: number };
   unidadeMedidaProduto: ApiUnidade;
   categoriaProduto: ApiCategoria;
-  dataValidade?: string;
-  estaVencido: boolean;
   precisaReposicao: boolean;
   situacao: "ATIVO" | "INATIVO";
 }
@@ -61,6 +59,8 @@ export interface ApiMovimentacao {
   cidade?: string;
   valorCompra?: number;
   residenteNome?: string;
+  lote?: string;
+  dataValidade?: string;
 }
 
 interface ApiPage<T> {
@@ -348,8 +348,6 @@ function productFromApi(product: ApiProduto): Produto {
     unidadeMedida: unitFromApi(product.unidadeMedidaProduto),
     quantidadeEstoque: product.quantidadeAtual.valor,
     estoqueMinimo: product.estoqueMinimo.valor,
-    dataValidade: product.dataValidade,
-    estaVencido: product.estaVencido,
     precisaReposicao: product.precisaReposicao,
     situacao: product.situacao,
   };
@@ -425,24 +423,23 @@ export async function getProduct(id: string): Promise<Produto> {
   return productFromApi(product);
 }
 
-export async function createProduct(input: Omit<Produto, "id" | "estaVencido" | "precisaReposicao" | "situacao">): Promise<Produto> {
+export async function createProduct(input: Omit<Produto, "id" | "quantidadeEstoque" | "precisaReposicao" | "situacao">): Promise<Produto> {
   const product = await request<ApiProduto>("/v1/produtos", {
     method: "POST",
     body: JSON.stringify({
       nome: input.nome,
-      quantidadeAtual: input.quantidadeEstoque,
+      quantidadeAtual: 0,
       estoqueMinimo: input.estoqueMinimo,
       unidadeMedida: unitToApi(input.unidadeMedida),
       categoria: categoryToApi(input.categoria),
       situacao: "ATIVO",
-      dataValidade: input.dataValidade || undefined,
     }),
   });
   window.dispatchEvent(new Event("api:cache-invalidate"));
   return productFromApi(product);
 }
 
-export async function updateProduct(id: string, input: Omit<Produto, "id" | "quantidadeEstoque" | "estaVencido" | "precisaReposicao" | "situacao">): Promise<Produto> {
+export async function updateProduct(id: string, input: Omit<Produto, "id" | "quantidadeEstoque" | "precisaReposicao" | "situacao">): Promise<Produto> {
   const product = await request<ApiProduto>(`/v1/produtos/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -450,7 +447,6 @@ export async function updateProduct(id: string, input: Omit<Produto, "id" | "qua
       estoqueMinimo: input.estoqueMinimo,
       unidadeMedida: unitToApi(input.unidadeMedida),
       categoria: categoryToApi(input.categoria),
-      dataValidade: input.dataValidade || undefined,
     }),
   });
   window.dispatchEvent(new Event("api:cache-invalidate"));
@@ -472,7 +468,7 @@ export async function listMovements(productId?: string): Promise<ApiMovimentacao
   return allPages<ApiMovimentacao>(`/v1/movimentacao${productQuery}`, 100);
 }
 
-export function createMovement(input: {
+type CreateMovementInput = {
   produtoId: string;
   tipoMovimentacao: TipoMovimentacao;
   quantidade: number;
@@ -480,7 +476,12 @@ export function createMovement(input: {
   cidade?: string;
   valorCompra?: number;
   residenteNome?: string;
-}): Promise<ApiMovimentacao> {
+} & (
+  | { tipoMovimentacao: "ENTRADA_DOACAO" | "ENTRADA_COMPRA"; dataValidade?: string }
+  | { tipoMovimentacao: "SAIDA_CONSUMO" | "SAIDA_PERDA"; lote: string; dataValidade?: never }
+);
+
+export function createMovement(input: CreateMovementInput): Promise<ApiMovimentacao> {
   const { id: usuarioId } = getSessionIdentity();
   if (!usuarioId) throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
   return request<ApiMovimentacao>("/v1/movimentacao", {

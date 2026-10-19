@@ -56,7 +56,8 @@ export function getSetorNome(setor: Setor | undefined): string {
   return setor?.nome ?? "—";
 }
 
-export function toLocalDateKey(iso: string): string {
+export function toLocalDateKey(iso: string | null | undefined): string {
+  if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
   const year = date.getFullYear();
@@ -65,12 +66,13 @@ export function toLocalDateKey(iso: string): string {
   return `${year}-${month}-${day}`;
 }
 
-export function formatLocalDate(iso: string): string {
+export function formatLocalDate(iso: string | null | undefined): string {
   const dateKey = toLocalDateKey(iso);
   return dateKey ? new Date(`${dateKey}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 }
 
-export function formatLocalDateTime(iso: string): string {
+export function formatLocalDateTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
   return `${formatLocalDate(iso)} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;

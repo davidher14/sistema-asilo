@@ -45,7 +45,7 @@ export default function Dashboard() {
   }, [produtos, movimentacoes]);
 
   const recentes = [...movimentacoes]
-    .sort((a, b) => b.dataHora.localeCompare(a.dataHora))
+    .sort((a, b) => (b.dataHora ?? "").localeCompare(a.dataHora ?? ""))
     .slice(0, 6);
   const maxConsumo = Math.max(...consumoPorCategoria.map((item) => item.valor), 1);
 

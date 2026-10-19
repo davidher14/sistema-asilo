@@ -57,19 +57,29 @@ export default function Saidas() {
   const lotesDisponiveis = useMemo(() => {
     const entradas = todasMovimentacoes.filter((item) =>
       item.produtoId === Number(produtoId) &&
+      Boolean(item.lote?.trim()) &&
       (item.tipoMovimentacao === "ENTRADA_COMPRA" || item.tipoMovimentacao === "ENTRADA_DOACAO"),
     );
-    return entradas.map((entrada) => {
-      const id = String(entrada.id);
-      const quantidadeRetirada = todasMovimentacoes
-        .filter((item) =>
-          item.produtoId === Number(produtoId) &&
-          (item.tipoMovimentacao === "SAIDA_CONSUMO" || item.tipoMovimentacao === "SAIDA_PERDA") &&
-          String(item.lote ?? "") === id,
-        )
-        .reduce((total, item) => total + item.quantidade, 0);
-      return { id, quantidade: Math.max(0, entrada.quantidade - quantidadeRetirada) };
-    }).filter((lote) => lote.quantidade > 0);
+    const saldosPorLote = new Map<string, number>();
+    entradas.forEach((entrada) => {
+      const id = entrada.lote?.trim();
+      if (!id) return;
+      saldosPorLote.set(id, (saldosPorLote.get(id) ?? 0) + entrada.quantidade);
+    });
+    todasMovimentacoes
+      .filter((item) =>
+        item.produtoId === Number(produtoId) &&
+        (item.tipoMovimentacao === "SAIDA_CONSUMO" || item.tipoMovimentacao === "SAIDA_PERDA") &&
+        Boolean(item.lote?.trim()),
+      )
+      .forEach((saida) => {
+        const id = saida.lote?.trim();
+        if (!id) return;
+        const saldoAtual = saldosPorLote.get(id);
+        if (saldoAtual !== undefined) saldosPorLote.set(id, saldoAtual - saida.quantidade);
+      });
+    return [...saldosPorLote].map(([id, quantidade]) => ({ id, quantidade: Math.max(0, quantidade) }))
+      .filter((lote) => lote.quantidade > 0);
   }, [produtoId, todasMovimentacoes]);
 
   useEffect(() => {

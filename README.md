@@ -16,7 +16,7 @@ Como o site e a API são origens diferentes em produção, configure o backend p
 
 O Swagger documenta `dataValidade` (opcional, no formato `YYYY-MM-DD`) no corpo e na resposta de `POST /v1/movimentacao` e em `GET /v1/movimentacao`. O frontend envia esse campo nas entradas e exibe a validade devolvida pela API.
 
-Como o Swagger não documenta campo nem endpoints de lote, o frontend usa o `id` da movimentação de entrada como identificador do lote e envia esse ID no campo `lote` das saídas. A tela calcula o saldo por lote subtraindo as saídas que a API devolver com essa associação. O contrato publicado não garante que a API aceite, persista ou devolva `lote`; enquanto isso não for suportado pelo backend, essa associação e o saldo por lote não são confiáveis entre recargas. O estoque existente também precisará ser associado a lotes para ter validade controlada.
+Como o Swagger não documenta campo nem endpoints de lote, o frontend permite informar o identificador usado pelo asilo ao registrar cada entrada e envia esse mesmo valor no campo `lote` das saídas. Se a API não devolver esse campo, o navegador guarda a associação entre o ID da movimentação e o lote informado; entradas do mesmo produto e lote são somadas, e saídas associadas são descontadas do saldo exibido. Essa associação fica apenas no navegador usado para registrar o movimento e não sincroniza entre dispositivos ou navegadores. Para persistência compartilhada, o backend precisa aceitar, armazenar e devolver `lote`. O estoque existente também precisará ser associado a lotes para ter validade controlada.
 
 ## Desenvolvimento
 

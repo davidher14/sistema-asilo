@@ -16,7 +16,7 @@ interface LinhaRelatorio {
   categoria: string;
   tipo: string;
   quantidade: number;
-  data: string;
+  data: string | null;
 }
 
 function formatDateInput(date: Date) {

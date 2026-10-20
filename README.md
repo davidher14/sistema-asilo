@@ -32,3 +32,5 @@ npm run preview
 ```
 
 O login usa o campo `login` cadastrado na API, que não precisa ser um endereço de e-mail.
+
+A sessão de autenticação fica armazenada apenas na aba atual. Ao fechar a aba, será necessário entrar novamente; recarregar a página mantém a sessão.

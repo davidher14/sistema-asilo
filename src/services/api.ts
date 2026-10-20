@@ -95,6 +95,7 @@ let slowNoticeTriggered = false;
 
 localStorage.removeItem("asilo-user-role");
 localStorage.removeItem("asilo-user-email");
+localStorage.removeItem(SESSION_KEY);
 
 async function fetchApi(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
@@ -129,7 +130,7 @@ async function fetchApi(input: RequestInfo | URL, init?: RequestInit): Promise<R
 }
 
 export function readSession(): ApiSession | null {
-  const stored = localStorage.getItem(SESSION_KEY);
+  const stored = sessionStorage.getItem(SESSION_KEY);
   if (!stored) return null;
   try {
     return JSON.parse(stored) as ApiSession;
@@ -149,7 +150,7 @@ export function getSessionRole(): ApiUsuario["tipoUsuario"] | null {
 }
 
 function saveSession(session: ApiSession) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
 export function getSessionUser(): Usuario | null {
@@ -172,7 +173,8 @@ export function getSessionIdentity(): { id: number; login: string } {
 }
 
 export function logout(notify = true) {
-  const hadSession = localStorage.getItem(SESSION_KEY) !== null;
+  const hadSession = sessionStorage.getItem(SESSION_KEY) !== null;
+  sessionStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem("asilo-user-role");
   localStorage.removeItem("asilo-user-email");

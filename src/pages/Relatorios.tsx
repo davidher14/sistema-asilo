@@ -37,34 +37,53 @@ function movementLabel(movement: ApiMovimentacao) {
 
 export default function Relatorios() {
   const [periodo, setPeriodo] = useState("30");
+  const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState(() => {
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - 30);
+    return formatDateInput(inicio);
+  });
+  const [dataFimPersonalizada, setDataFimPersonalizada] = useState(() => formatDateInput(new Date()));
   const [tipo, setTipo] = useState<TipoRelatorio>("GERAL");
   const [produtoFiltro, setProdutoFiltro] = useState("todos");
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<ApiMovimentacao[]>([]);
-  const [erro, setErro] = useState("");
+  const [erroCarregamento, setErroCarregamento] = useState("");
+  const [erroExportacao, setErroExportacao] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
 
+  async function carregarDados(force = false) {
+    setCarregando(true);
+    setErroCarregamento("");
+    try {
+      const { products, movements } = await loadInventoryData(force);
+      setProdutos(products);
+      setMovimentacoes(movements);
+    } catch (error: unknown) {
+      setErroCarregamento(error instanceof Error ? error.message : "Não foi possível carregar o relatório.");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
   useEffect(() => {
-    loadInventoryData()
-      .then(({ products, movements }) => {
-        setProdutos(products);
-        setMovimentacoes(movements);
-      })
-      .catch((error: unknown) => setErro(error instanceof Error ? error.message : "Não foi possível carregar o relatório."))
-      .finally(() => setCarregando(false));
+    void carregarDados();
   }, []);
 
-  const dataFim = formatDateInput(new Date());
+  const hoje = formatDateInput(new Date());
   const inicio = new Date();
   inicio.setDate(inicio.getDate() - Number(periodo));
-  const dataInicio = formatDateInput(inicio);
+  const dataInicio = periodo === "personalizado" ? dataInicioPersonalizada : formatDateInput(inicio);
+  const dataFim = periodo === "personalizado" ? dataFimPersonalizada : hoje;
+  const periodoInvalido = !dataInicio || !dataFim || dataInicio > dataFim;
+  const dadosDisponiveis = !carregando && !erroCarregamento && !periodoInvalido;
   const produtoPorId = useMemo(
     () => new Map(produtos.map((produto) => [Number(produto.id), produto])),
     [produtos],
   );
 
   const linhas = useMemo<LinhaRelatorio[]>(() => {
+    if (periodoInvalido) return [];
     return movimentacoes
       .filter((item) => {
         const dateKey = toLocalDateKey(item.dataHora);
@@ -85,7 +104,7 @@ export default function Relatorios() {
         quantidade: item.quantidade,
         data: item.dataHora,
       }));
-  }, [dataFim, dataInicio, movimentacoes, produtoFiltro, produtoPorId, tipo]);
+  }, [dataFim, dataInicio, movimentacoes, periodoInvalido, produtoFiltro, produtoPorId, tipo]);
 
   const totalMovimentado = linhas.reduce((total, item) => total + item.quantidade, 0);
   const consumoPorCategoria = useMemo(() => {
@@ -98,9 +117,9 @@ export default function Relatorios() {
   const maxConsumo = Math.max(...consumoPorCategoria.map((item) => item.valor), 1);
 
   async function exportarCsv() {
-    setErro("");
-    if (dataInicio > dataFim) {
-      setErro("A data inicial deve ser anterior ou igual à data final.");
+    setErroExportacao("");
+    if (periodoInvalido) {
+      setErroExportacao("Informe um período válido: a data inicial deve ser anterior ou igual à data final.");
       return;
     }
     setExportando(true);
@@ -115,7 +134,7 @@ export default function Relatorios() {
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Não foi possível exportar o CSV.");
+      setErroExportacao(error instanceof Error ? error.message : "Não foi possível exportar o CSV.");
     } finally {
       setExportando(false);
     }
@@ -131,7 +150,13 @@ export default function Relatorios() {
 
   return (
     <Layout title="Relatórios" subtitle="Análise das movimentações do estoque">
-      {erro && <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</p>}
+      {erroCarregamento && (
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{erroCarregamento}</span>
+          <button type="button" className="font-semibold underline" onClick={() => void carregarDados(true)}>Tentar novamente</button>
+        </div>
+      )}
+      {erroExportacao && <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erroExportacao}</p>}
       <div className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs font-semibold text-gray-500">Período</label>
@@ -140,8 +165,21 @@ export default function Relatorios() {
             <option value="30">Últimos 30 dias</option>
             <option value="90">Últimos 90 dias</option>
             <option value="365">Último ano</option>
+            <option value="personalizado">Personalizado</option>
           </select>
         </div>
+        {periodo === "personalizado" && (
+          <>
+            <div>
+              <label htmlFor="data-inicio" className="mb-1 block text-xs font-semibold text-gray-500">Data inicial</label>
+              <input id="data-inicio" type="date" value={dataInicioPersonalizada} max={dataFimPersonalizada || undefined} onChange={(event) => setDataInicioPersonalizada(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700" />
+            </div>
+            <div>
+              <label htmlFor="data-fim" className="mb-1 block text-xs font-semibold text-gray-500">Data final</label>
+              <input id="data-fim" type="date" value={dataFimPersonalizada} min={dataInicioPersonalizada || undefined} max={hoje} onChange={(event) => setDataFimPersonalizada(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700" />
+            </div>
+          </>
+        )}
         <div>
           <label className="mb-1 block text-xs font-semibold text-gray-500">Tipo</label>
           <select value={tipo} onChange={(event) => setTipo(event.target.value as TipoRelatorio)} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
@@ -160,20 +198,21 @@ export default function Relatorios() {
           </select>
         </div>
         <div className="flex items-end">
-          <Button variant="secondary" className="w-full" onClick={exportarCsv} disabled={exportando}>
+          <Button variant="secondary" className="w-full" onClick={exportarCsv} disabled={exportando || periodoInvalido}>
             {exportando ? "Exportando..." : "Exportar CSV"}
           </Button>
         </div>
       </div>
+      {periodoInvalido && <p role="alert" className="mb-4 text-sm text-red-700">A data inicial deve ser anterior ou igual à data final.</p>}
       <p className="mb-5 text-xs text-gray-500">A exportação CSV usa o período e o tipo selecionados; o filtro de produto aplica-se à tabela. Setor e PDF não fazem parte do contrato atual.</p>
       <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div><h3 className="text-sm font-bold text-gray-800">Consumo por categoria</h3><p className="text-xs text-gray-400">Saídas classificadas como consumo</p></div>
-            <Badge variant="purple">{totalMovimentado} itens</Badge>
+            <Badge variant="purple">{dadosDisponiveis ? `${totalMovimentado} itens` : "—"}</Badge>
           </div>
           <div className="mt-5 space-y-4">
-            {consumoPorCategoria.length === 0 && <p className="py-6 text-center text-sm text-gray-400">Sem dados no período selecionado.</p>}
+            {!dadosDisponiveis ? <p className="py-6 text-center text-sm text-gray-400">{carregando ? "Carregando dados..." : "Dados indisponíveis."}</p> : consumoPorCategoria.length === 0 && <p className="py-6 text-center text-sm text-gray-400">Sem dados no período selecionado.</p>}
             {consumoPorCategoria.map((item) => (
               <div key={item.nome}>
                 <div className="mb-1 flex items-center justify-between text-xs"><span className="font-medium text-gray-600">{item.nome}</span><span className="font-semibold text-gray-800">{item.valor}</span></div>
@@ -185,14 +224,14 @@ export default function Relatorios() {
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-bold text-gray-800">Destaques do período</h3>
           <div className="mt-5 grid grid-cols-2 gap-4">
-            <div className="rounded-lg bg-blue-50 p-4"><p className="text-2xl font-bold text-blue-700">{linhas.length}</p><p className="text-xs font-medium text-blue-500">Movimentações</p></div>
-            <div className="rounded-lg bg-red-50 p-4"><p className="text-2xl font-bold text-red-600">{totalMovimentado}</p><p className="text-xs font-medium text-red-500">Itens movimentados</p></div>
-            <div className="rounded-lg bg-purple-50 p-4"><p className="text-2xl font-bold text-purple-700">{linhas.length ? (totalMovimentado / linhas.length).toFixed(1) : "0"}</p><p className="text-xs font-medium text-purple-500">Média por movimentação</p></div>
-            <div className="rounded-lg bg-emerald-50 p-4"><p className="text-2xl font-bold text-emerald-700">{consumoPorCategoria.length}</p><p className="text-xs font-medium text-emerald-500">Categorias de consumo</p></div>
+            <div className="rounded-lg bg-blue-50 p-4"><p className="text-2xl font-bold text-blue-700">{dadosDisponiveis ? linhas.length : "—"}</p><p className="text-xs font-medium text-blue-500">Movimentações</p></div>
+            <div className="rounded-lg bg-red-50 p-4"><p className="text-2xl font-bold text-red-600">{dadosDisponiveis ? totalMovimentado : "—"}</p><p className="text-xs font-medium text-red-500">Itens movimentados</p></div>
+            <div className="rounded-lg bg-purple-50 p-4"><p className="text-2xl font-bold text-purple-700">{dadosDisponiveis ? (linhas.length ? (totalMovimentado / linhas.length).toFixed(1) : "0") : "—"}</p><p className="text-xs font-medium text-purple-500">Média por movimentação</p></div>
+            <div className="rounded-lg bg-emerald-50 p-4"><p className="text-2xl font-bold text-emerald-700">{dadosDisponiveis ? consumoPorCategoria.length : "—"}</p><p className="text-xs font-medium text-emerald-500">Categorias de consumo</p></div>
           </div>
         </div>
       </div>
-      {carregando ? <p className="py-10 text-center text-sm text-gray-500">Carregando relatório...</p> : <Table columns={columns} data={linhas} emptyMessage="Nenhuma movimentação encontrada com os filtros selecionados." />}
+      {carregando ? <p className="py-10 text-center text-sm text-gray-500">Carregando relatório...</p> : erroCarregamento ? <p className="py-10 text-center text-sm text-gray-500">Os dados do relatório estão indisponíveis.</p> : periodoInvalido ? <p className="py-10 text-center text-sm text-gray-500">Corrija o período para consultar as movimentações.</p> : <Table columns={columns} data={linhas} emptyMessage="Nenhuma movimentação encontrada com os filtros selecionados." />}
     </Layout>
   );
 }

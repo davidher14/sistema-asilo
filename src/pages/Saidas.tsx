@@ -15,12 +15,10 @@ export default function Saidas() {
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [modalAberto, setModalAberto] = useState(false);
   const [movimentacoes, setMovimentacoes] = useState<ApiMovimentacao[]>([]);
-  const [todasMovimentacoes, setTodasMovimentacoes] = useState<ApiMovimentacao[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtoId, setProdutoId] = useState("");
   const [tipo, setTipo] = useState<"SAIDA_CONSUMO" | "SAIDA_PERDA">("SAIDA_CONSUMO");
   const [quantidade, setQuantidade] = useState("");
-  const [lote, setLote] = useState("");
   const [residenteNome, setResidenteNome] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -29,7 +27,6 @@ export default function Saidas() {
 
   async function carregarDados() {
     const { products: listaProdutos, movements: listaMovimentacoes } = await loadInventoryData();
-    setTodasMovimentacoes(listaMovimentacoes);
     setProdutos(listaProdutos.filter((produto) => produto.situacao === "ATIVO"));
     setMovimentacoes(listaMovimentacoes.filter((item) =>
       item.tipoMovimentacao === "SAIDA_CONSUMO" || item.tipoMovimentacao === "SAIDA_PERDA",
@@ -54,38 +51,6 @@ export default function Saidas() {
     });
   }, [busca, movimentacoes, tipoFiltro]);
 
-  const lotesDisponiveis = useMemo(() => {
-    const entradas = todasMovimentacoes.filter((item) =>
-      item.produtoId === Number(produtoId) &&
-      Boolean(item.lote?.trim()) &&
-      (item.tipoMovimentacao === "ENTRADA_COMPRA" || item.tipoMovimentacao === "ENTRADA_DOACAO"),
-    );
-    const saldosPorLote = new Map<string, number>();
-    entradas.forEach((entrada) => {
-      const id = entrada.lote?.trim();
-      if (!id) return;
-      saldosPorLote.set(id, (saldosPorLote.get(id) ?? 0) + entrada.quantidade);
-    });
-    todasMovimentacoes
-      .filter((item) =>
-        item.produtoId === Number(produtoId) &&
-        (item.tipoMovimentacao === "SAIDA_CONSUMO" || item.tipoMovimentacao === "SAIDA_PERDA") &&
-        Boolean(item.lote?.trim()),
-      )
-      .forEach((saida) => {
-        const id = saida.lote?.trim();
-        if (!id) return;
-        const saldoAtual = saldosPorLote.get(id);
-        if (saldoAtual !== undefined) saldosPorLote.set(id, saldoAtual - saida.quantidade);
-      });
-    return [...saldosPorLote].map(([id, quantidade]) => ({ id, quantidade: Math.max(0, quantidade) }))
-      .filter((lote) => lote.quantidade > 0);
-  }, [produtoId, todasMovimentacoes]);
-
-  useEffect(() => {
-    setLote((atual) => lotesDisponiveis.some((item) => item.id === atual) ? atual : lotesDisponiveis[0]?.id ?? "");
-  }, [lotesDisponiveis]);
-
   const resumo = useMemo(() => ({
     consumo: movimentacoes.filter((item) => item.tipoMovimentacao === "SAIDA_CONSUMO").reduce((total, item) => total + item.quantidade, 0),
     perdas: movimentacoes.filter((item) => item.tipoMovimentacao === "SAIDA_PERDA").reduce((total, item) => total + item.quantidade, 0),
@@ -98,15 +63,7 @@ export default function Saidas() {
     const invalidQuantity = positiveQuantityError(quantidade, product?.unidadeMedida ?? "");
     const amount = parseLocalizedNumber(quantidade);
     setErroQuantidade(invalidQuantity);
-    const loteSelecionado = lotesDisponiveis.find((item) => item.id === lote);
-    if (invalidQuantity || !loteSelecionado) {
-      if (!invalidQuantity) setErro("Selecione um lote com saldo disponível.");
-      return;
-    }
-    if (amount > loteSelecionado.quantidade) {
-      setErro(`Quantidade maior que o saldo do lote (${loteSelecionado.quantidade})`);
-      return;
-    }
+    if (invalidQuantity) return;
     setSalvando(true);
     try {
       const latestProduct = await getProduct(produtoId);
@@ -123,13 +80,11 @@ export default function Saidas() {
         produtoId,
         tipoMovimentacao: tipo,
         quantidade: amount,
-        lote,
         residenteNome: tipo === "SAIDA_CONSUMO" ? residenteNome.trim() : undefined,
       });
       await carregarDados();
       setModalAberto(false);
       setQuantidade("");
-      setLote("");
       setResidenteNome("");
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Não foi possível registrar a saída.");
@@ -143,7 +98,6 @@ export default function Saidas() {
     { key: "produto", header: "Produto", render: (item) => <span className="font-semibold text-gray-800">{item.produtoNome}</span> },
     { key: "tipo", header: "Tipo", render: (item) => <Badge variant={item.tipoMovimentacao === "SAIDA_PERDA" ? "red" : "purple"}>{item.tipoMovimentacao === "SAIDA_PERDA" ? "Perda" : "Consumo"}</Badge> },
     { key: "quantidade", header: "Quantidade", align: "right", render: (item) => <span className="font-bold text-red-600">−{item.quantidade}</span> },
-    { key: "lote", header: "Lote", render: (item) => item.lote ? `#${item.lote}` : "—" },
     { key: "residente", header: "Residente", render: (item) => <span className="text-gray-500">{item.residenteNome ?? "—"}</span> },
   ];
 
@@ -178,16 +132,9 @@ export default function Saidas() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Produto</label>
-              <select value={produtoId} onChange={(event) => { setProdutoId(event.target.value); setLote(""); }} required className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800">
+              <select value={produtoId} onChange={(event) => setProdutoId(event.target.value)} required className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800">
                 {produtos.map((produto) => <option key={produto.id} value={produto.id}>{produto.nome} ({produto.quantidadeEstoque} {produto.unidadeMedida})</option>)}
               </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Lote</label>
-              <select value={lote} onChange={(event) => setLote(event.target.value)} required disabled={!lotesDisponiveis.length} className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 disabled:bg-gray-100">
-                {lotesDisponiveis.map((item) => <option key={item.id} value={item.id}>#{item.id} — saldo {item.quantidade}</option>)}
-              </select>
-              {!lotesDisponiveis.length && <p className="mt-1 text-xs text-amber-700">Este produto não tem lotes com saldo registrado.</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tipo de saída</label>
@@ -209,7 +156,7 @@ export default function Saidas() {
             )}
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={() => setModalAberto(false)}>Cancelar</Button>
-              <Button type="submit" disabled={salvando || !lotesDisponiveis.length}>{salvando ? "Registrando..." : "Registrar saída"}</Button>
+              <Button type="submit" disabled={salvando}>{salvando ? "Registrando..." : "Registrar saída"}</Button>
             </div>
           </form>
         </Modal>

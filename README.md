@@ -12,11 +12,9 @@ No desenvolvimento local, deixe `VITE_API_URL` indefinida para as chamadas `/v1`
 
 Como o site e a API são origens diferentes em produção, configure o backend para permitir a origem pública do frontend e os métodos `GET`, `POST`, `PATCH` e `DELETE`, além dos cabeçalhos `Authorization`, `Content-Type` e `X-Usuario-Login`. Sem isso, o navegador bloqueia as chamadas autenticadas antes de elas chegarem à API.
 
-## Lotes e validade
+## Validade
 
 O Swagger documenta `dataValidade` (opcional, no formato `YYYY-MM-DD`) no corpo e na resposta de `POST /v1/movimentacao` e em `GET /v1/movimentacao`. O frontend envia esse campo nas entradas e exibe a validade devolvida pela API.
-
-Como o Swagger não documenta campo nem endpoints de lote, o frontend permite informar o identificador usado pelo asilo ao registrar cada entrada e envia esse mesmo valor no campo `lote` das saídas. Se a API não devolver esse campo, o navegador guarda a associação entre o ID da movimentação e o lote informado; entradas do mesmo produto e lote são somadas, e saídas associadas são descontadas do saldo exibido. Essa associação fica apenas no navegador usado para registrar o movimento e não sincroniza entre dispositivos ou navegadores. Para persistência compartilhada, o backend precisa aceitar, armazenar e devolver `lote`. O estoque existente também precisará ser associado a lotes para ter validade controlada.
 
 ## Desenvolvimento
 

@@ -4,7 +4,6 @@ const API_URL = (
   import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "https://wajunkai.onrender.com")
 ).replace(/\/+$/, "");
 const SESSION_KEY = "asilo-api-session";
-const MOVEMENT_LOTS_KEY = "asilo-movement-lots";
 
 type ApiCategoria =
   | "ALIMENTACAO"
@@ -60,7 +59,6 @@ export interface ApiMovimentacao {
   cidade?: string;
   valorCompra?: number;
   residenteNome?: string;
-  lote?: string;
   dataValidade?: string;
 }
 
@@ -367,48 +365,11 @@ function normalizeNumber(value: unknown): number {
   return Number(value) || 0;
 }
 
-function movementLotKey(movement: Pick<ApiMovimentacao, "id" | "produtoId">): string {
-  return `${movement.produtoId}:${movement.id}`;
-}
-
-function readMovementLots(): Record<string, string> {
-  const stored = localStorage.getItem(MOVEMENT_LOTS_KEY);
-  if (!stored) return {};
-  try {
-    const value: unknown = JSON.parse(stored);
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      throw new Error("Formato inválido");
-    }
-    return Object.fromEntries(
-      Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-    );
-  } catch {
-    throw new ApiError("Não foi possível ler os lotes salvos neste navegador.");
-  }
-}
-
-function saveMovementLot(
-  movement: ApiMovimentacao,
-  lot: string,
-  lots: Record<string, string>,
-): ApiMovimentacao {
-  const normalizedLot = lot.trim();
-  if (!normalizedLot) return movement;
-  lots[movementLotKey(movement)] = normalizedLot;
-  localStorage.setItem(MOVEMENT_LOTS_KEY, JSON.stringify(lots));
-  return { ...movement, lote: normalizedLot };
-}
-
-function movementFromApi(
-  movement: ApiMovimentacaoResponse,
-  lots: Record<string, string>,
-): ApiMovimentacao {
-  const loteSalvo = lots[movementLotKey(movement)];
+function movementFromApi(movement: ApiMovimentacaoResponse): ApiMovimentacao {
   return {
     ...movement,
     quantidade: normalizeNumber(movement.quantidade),
     valorCompra: movement.valorCompra == null ? undefined : normalizeNumber(movement.valorCompra),
-    lote: movement.lote?.trim() || loteSalvo,
   };
 }
 
@@ -525,8 +486,7 @@ export function activateProduct(id: string): Promise<void> {
 export async function listMovements(productId?: string): Promise<ApiMovimentacao[]> {
   const productQuery = productId ? `?produtoId=${encodeURIComponent(productId)}` : "";
   const movements = await allPages<ApiMovimentacaoResponse>(`/v1/movimentacao${productQuery}`, 100);
-  const lots = readMovementLots();
-  return movements.map((movement) => movementFromApi(movement, lots));
+  return movements.map(movementFromApi);
 }
 
 type CreateMovementInput = {
@@ -538,23 +498,19 @@ type CreateMovementInput = {
   valorCompra?: number;
   residenteNome?: string;
 } & (
-  | { tipoMovimentacao: "ENTRADA_DOACAO" | "ENTRADA_COMPRA"; lote: string; dataValidade?: string }
-  | { tipoMovimentacao: "SAIDA_CONSUMO" | "SAIDA_PERDA"; lote: string; dataValidade?: never }
+  | { tipoMovimentacao: "ENTRADA_DOACAO" | "ENTRADA_COMPRA"; dataValidade?: string }
+  | { tipoMovimentacao: "SAIDA_CONSUMO" | "SAIDA_PERDA"; dataValidade?: never }
 );
 
 export async function createMovement(input: CreateMovementInput): Promise<ApiMovimentacao> {
   const { id: usuarioId } = getSessionIdentity();
   if (!usuarioId) throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
-  const { lote, ...movementInput } = input;
   const movement = await request<ApiMovimentacaoResponse>("/v1/movimentacao", {
     method: "POST",
-    body: JSON.stringify({ ...movementInput, produtoId: Number(input.produtoId), usuarioId }),
+    body: JSON.stringify({ ...input, produtoId: Number(input.produtoId), usuarioId }),
   });
-  const lots = readMovementLots();
-  const normalizedMovement = movementFromApi(movement, lots);
-  const movementWithLot = saveMovementLot(normalizedMovement, lote, lots);
   window.dispatchEvent(new Event("api:cache-invalidate"));
-  return movementWithLot;
+  return movementFromApi(movement);
 }
 
 export async function downloadMovementsCsv(dataInicio: string, dataFim: string, tipo: string): Promise<Blob> {

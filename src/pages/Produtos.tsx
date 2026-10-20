@@ -183,7 +183,7 @@ export default function Produtos() {
               </div>
             </div>
             <div>
-              {!produtoEditando && <p className="mb-4 text-xs text-gray-500">O estoque começa zerado. Registre cada quantidade recebida em Entradas para informar lote e validade.</p>}
+              {!produtoEditando && <p className="mb-4 text-xs text-gray-500">O estoque começa zerado. Registre cada quantidade recebida em Entradas.</p>}
               {produtoEditando && <p className="mb-4 text-xs text-gray-500">A quantidade em estoque é atualizada ao registrar entradas e saídas.</p>}
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700">Estoque mínimo</label>

@@ -4,13 +4,13 @@ Frontend React 18 + TypeScript + Vite para o sistema de controle de estoque do A
 
 ## API
 
-O frontend usa `https://wajunkai.onrender.com` por padrão na publicação. Para apontar a publicação para outra API, ajuste `VITE_API_URL` no ambiente de build.
+Em produção na Vercel, as chamadas `/v1` são encaminhadas para `https://wajunkai.onrender.com` por um rewrite, evitando chamadas cross-origin do navegador. Não configure `VITE_API_URL` nas variáveis de ambiente da Vercel; a aplicação usa o mesmo domínio e a Vercel encaminha as requisições para a API.
 
 Variáveis `VITE_*` são incluídas no bundle e podem ser visualizadas por qualquer pessoa que acesse o site. Não coloque senhas, tokens ou outros segredos nessas variáveis.
 
-No desenvolvimento local, deixe `VITE_API_URL` indefinida para as chamadas `/v1` passarem pelo proxy do Vite. Se definir a variável localmente, as chamadas irão diretamente à origem configurada e dependerão do CORS dessa API.
+No desenvolvimento local, deixe `VITE_API_URL` indefinida para as chamadas `/v1` passarem pelo proxy do Vite. Se defini-la localmente, as chamadas irão diretamente à origem configurada e dependerão do CORS dessa API.
 
-Como o site e a API são origens diferentes em produção, configure o backend para permitir a origem pública do frontend e os métodos `GET`, `POST`, `PATCH` e `DELETE`, além dos cabeçalhos `Authorization`, `Content-Type` e `X-Usuario-Login`. Sem isso, o navegador bloqueia as chamadas autenticadas antes de elas chegarem à API.
+O rewrite da Vercel evita a exigência de CORS entre o navegador e a API. Se acessar a API diretamente (por exemplo, ao definir `VITE_API_URL` no desenvolvimento), o backend ainda precisa permitir a origem do frontend e os métodos `GET`, `POST`, `PATCH` e `DELETE`, além dos cabeçalhos `Authorization`, `Content-Type` e `X-Usuario-Login`.
 
 ## Validade
 

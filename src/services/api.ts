@@ -1,8 +1,8 @@
 import type { CategoriaProduto, Produto, UnidadeMedida, Usuario } from "../types";
 
-const API_URL = (
-  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "https://wajunkai.onrender.com")
-).replace(/\/+$/, "");
+const API_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "")
+  : "";
 const SESSION_KEY = "asilo-api-session";
 
 type ApiCategoria =

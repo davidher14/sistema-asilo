@@ -19,6 +19,7 @@ export interface Usuario {
   email: string;
   perfil: PerfilUsuario;
   ativo: boolean;
+  telefone?: string;
 }
 
 export interface Setor {

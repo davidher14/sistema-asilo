@@ -142,7 +142,7 @@ export function readSession(): ApiSession | null {
 
 export function hasValidSession(): boolean {
   const session = readSession();
-  return Boolean(session?.accessToken && session.user?.id);
+  return Boolean(session?.accessToken && session.user?.id && session.user.ativo);
 }
 
 export function getSessionRole(): ApiUsuario["tipoUsuario"] | null {
@@ -162,6 +162,7 @@ export function getSessionUser(): Usuario | null {
         email: session.user.login,
         perfil: session.user.tipoUsuario === "ADMIN" ? "ADMIN" : "ENFERMAGEM",
         ativo: session.user.ativo,
+        telefone: session.user.telefone,
       }
     : null;
 }
@@ -236,6 +237,10 @@ async function request<T>(
   const session = authenticated ? readSession() : null;
   if (authenticated && !session?.accessToken) {
     throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
+  }
+  if (authenticated && session?.accessToken && session.user?.ativo !== true) {
+    logout();
+    throw new ApiError("Sua conta está desativada. Fale com um administrador.", 403);
   }
   if (session?.accessToken) {
     headers.set("Authorization", `${session.tokenType || "Bearer"} ${session.accessToken}`);
@@ -382,6 +387,7 @@ function userFromApi(user: ApiUsuario): Usuario {
     email: user.login,
     perfil: user.tipoUsuario === "ADMIN" ? "ADMIN" : "ENFERMAGEM",
     ativo: user.ativo,
+    telefone: user.telefone,
   };
 }
 
@@ -402,6 +408,9 @@ export async function login(login: string, senha: string): Promise<Usuario> {
     const user = await request<ApiUsuario>("/v1/usuarios/me", {
       headers: { "X-Usuario-Login": getSessionIdentity().login },
     });
+    if (!user.ativo) {
+      throw new ApiError("Sua conta está desativada. Fale com um administrador.", 403);
+    }
     const authenticatedSession = { ...temporarySession, user };
     saveSession(authenticatedSession);
     return userFromApi(user);
@@ -427,6 +436,35 @@ export async function createUser(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
+  return userFromApi(user);
+}
+
+export interface AccountUpdateInput {
+  senhaAtualizada?: string;
+  telefone?: string;
+}
+
+export async function updateMyAccount(input: AccountUpdateInput): Promise<Usuario> {
+  const user = await request<ApiUsuario>("/v1/usuarios/me", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  const session = readSession();
+  if (!session) throw new ApiError("Sua sessão expirou. Entre novamente.", 401);
+  saveSession({ ...session, user });
+  return userFromApi(user);
+}
+
+export async function updateUserAccount(id: string, input: AccountUpdateInput): Promise<Usuario> {
+  if (getSessionRole() !== "ADMIN") {
+    throw new ApiError("Apenas administradores podem alterar a conta de outro usuário.", 403);
+  }
+  const user = await request<ApiUsuario>(`/v1/usuarios/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  const session = readSession();
+  if (session?.user.id === user.id) saveSession({ ...session, user });
   return userFromApi(user);
 }
 

@@ -7,6 +7,7 @@ import Entradas from "./pages/Entradas";
 import Saidas from "./pages/Saidas";
 import Relatorios from "./pages/Relatorios";
 import GerenciarLogins from "./pages/GerenciarLogins";
+import MinhaConta from "./pages/MinhaConta";
 import { getSessionRole, hasValidSession } from "./services/api";
 
 function ProtectedRoute() {
@@ -71,6 +72,7 @@ function App() {
           <Route path="/entradas" element={<Entradas />} />
           <Route path="/saidas" element={<Saidas />} />
           <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/minha-conta" element={<MinhaConta />} />
           <Route element={<AdminRoute />}>
             <Route path="/gerenciar-logins" element={<GerenciarLogins />} />
           </Route>

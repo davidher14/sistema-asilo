@@ -16,6 +16,12 @@ O rewrite da Vercel evita a exigência de CORS entre o navegador e a API. Se ace
 
 O Swagger documenta `dataValidade` (opcional, no formato `YYYY-MM-DD`) no corpo e na resposta de `POST /v1/movimentacao` e em `GET /v1/movimentacao`. O frontend envia esse campo nas entradas e exibe a validade devolvida pela API.
 
+## Contas de usuário
+
+O painel **Minha conta** permite ao usuário alterar a própria senha e telefone pela rota `PATCH /v1/usuarios/me`. Administradores também podem alterar senha e telefone de usuários ativos pela rota `PATCH /v1/usuarios/{id}`. O login é exibido como somente leitura porque não faz parte dos campos de atualização documentados pela API.
+
+As permissões precisam ser validadas pelo backend: `/me` deve atualizar somente o usuário autenticado, e a atualização por ID deve ser restrita a administradores. Restringir a interface do frontend, por si só, não protege essas operações.
+
 ## Desenvolvimento
 
 ```sh

@@ -98,6 +98,19 @@ export default function Sidebar() {
             )}
           </NavLink>
         ))}
+        <NavLink
+          to="/minha-conta"
+          className={({ isActive }) =>
+            `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              isActive ? "bg-white/10 text-white" : "text-blue-100/65 hover:bg-white/5 hover:text-white"
+            }`
+          }
+        >
+          <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
+          </svg>
+          <span>Minha conta</span>
+        </NavLink>
       </nav>
       <div className="border-t border-white/10 px-5 py-4">
         <button
@@ -108,7 +121,7 @@ export default function Sidebar() {
           }}
           className="mb-3 w-full rounded-lg border border-white/15 px-3 py-2 text-left text-sm text-blue-100/80 transition-colors hover:bg-white/5 hover:text-white"
         >
-          Sair ({sessionUser?.email || "conta"})
+          Sair ({sessionUser?.nome || "conta"})
         </button>
         <p className="text-xs text-gray-400">36 idosos · Comunidade Japonesa</p>
         <p className="mt-0.5 text-xs text-gray-500">v0.1 – Protótipo 2026</p>

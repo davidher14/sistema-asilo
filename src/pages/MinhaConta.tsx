@@ -6,6 +6,7 @@ import type { Usuario } from "../types";
 
 export default function MinhaConta() {
   const [usuario, setUsuario] = useState<Usuario | null>(() => getSessionUser());
+  const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -13,9 +14,14 @@ export default function MinhaConta() {
   const [salvando, setSalvando] = useState(false);
 
   async function salvarAlteracoes() {
+    const nomeLimpo = nome.trim();
     const telefoneLimpo = telefone.trim();
-    if (!senha && !telefoneLimpo) {
-      setErro("Informe uma nova senha ou um novo telefone.");
+    if (!nomeLimpo && !senha && !telefoneLimpo) {
+      setErro("Informe um novo nome, senha ou telefone.");
+      return;
+    }
+    if (nomeLimpo && !/^[a-zA-ZÀ-ÿ\s]{3,100}$/.test(nomeLimpo)) {
+      setErro("O nome deve ter de 3 a 100 caracteres e conter apenas letras e espaços.");
       return;
     }
     if (senha && senha.length < 6) {
@@ -32,10 +38,12 @@ export default function MinhaConta() {
     setSalvando(true);
     try {
       const usuarioAtualizado = await updateMyAccount({
+        ...(nomeLimpo ? { nomeAtualizado: nomeLimpo } : {}),
         ...(senha ? { senhaAtualizada: senha } : {}),
         ...(telefoneLimpo ? { telefone: telefoneLimpo } : {}),
       });
       setUsuario(usuarioAtualizado);
+      setNome("");
       setTelefone("");
       setSenha("");
       setSucesso("Dados da conta atualizados com sucesso.");
@@ -47,7 +55,7 @@ export default function MinhaConta() {
   }
 
   return (
-    <Layout title="Minha conta" subtitle="Atualize sua senha e telefone">
+    <Layout title="Minha conta" subtitle="Atualize seu nome, senha e telefone">
       <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900">Dados da conta</h2>
         <p className="mt-1 text-sm text-gray-500">Seu login não pode ser alterado por esta versão do sistema.</p>
@@ -56,6 +64,22 @@ export default function MinhaConta() {
         {sucesso && <p role="status" className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{sucesso}</p>}
 
         <div className="mt-5 space-y-4">
+          <div>
+            <p className="mb-1.5 text-sm font-semibold text-gray-700">Nome atual</p>
+            <p className="text-sm text-gray-600">{usuario?.nome || "Não informado"}</p>
+          </div>
+          <div>
+            <label htmlFor="novo-nome" className="mb-1.5 block text-sm font-semibold text-gray-700">Novo nome</label>
+            <input
+              id="novo-nome"
+              type="text"
+              autoComplete="name"
+              value={nome}
+              onChange={(event) => setNome(event.target.value)}
+              placeholder="De 3 a 100 caracteres"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
+            />
+          </div>
           <div>
             <label htmlFor="login-conta" className="mb-1.5 block text-sm font-semibold text-gray-700">Login</label>
             <input
@@ -94,7 +118,7 @@ export default function MinhaConta() {
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
             />
           </div>
-          <p className="text-xs text-gray-500">Deixe em branco o campo que não deseja alterar. O telefone deve conter DDD e somente números.</p>
+          <p className="text-xs text-gray-500">Deixe em branco o campo que não deseja alterar. O nome aceita apenas letras e espaços; o telefone deve conter DDD e somente números.</p>
           <Button variant="primary" onClick={salvarAlteracoes} disabled={salvando}>
             {salvando ? "Salvando..." : "Salvar alterações"}
           </Button>

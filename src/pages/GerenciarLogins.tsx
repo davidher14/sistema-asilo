@@ -3,7 +3,7 @@ import Layout from "../components/layout/Layout";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import type { Usuario } from "../types";
-import { createUser, deactivateUser, getSessionRole, listUsers, updateUserAccount } from "../services/api";
+import { activateUser, createUser, deactivateUser, getSessionRole, listUsers, updateUserAccount } from "../services/api";
 
 export default function GerenciarLogins() {
   const [listaUsuarios, setListaUsuarios] = useState<Usuario[]>([]);
@@ -14,12 +14,14 @@ export default function GerenciarLogins() {
   const [telefone, setTelefone] = useState("");
   const [cargo, setCargo] = useState<"ADMIN" | "USER">("USER");
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [nomeAtualizado, setNomeAtualizado] = useState("");
   const [telefoneAtualizado, setTelefoneAtualizado] = useState("");
   const [senhaAtualizada, setSenhaAtualizada] = useState("");
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [alterandoStatusId, setAlterandoStatusId] = useState<string | null>(null);
 
   useEffect(() => {
     if (getSessionRole() !== "ADMIN") return;
@@ -74,14 +76,23 @@ export default function GerenciarLogins() {
     }
   }
 
-  async function desativarUsuario(usuario: Usuario) {
+  async function alterarStatusUsuario(usuario: Usuario) {
     setErro("");
     setSucesso("");
+    setAlterandoStatusId(usuario.id);
     try {
-      await deactivateUser(usuario.id);
-      setListaUsuarios((atuais) => atuais.map((item) => item.id === usuario.id ? { ...item, ativo: false } : item));
+      if (usuario.ativo) {
+        await deactivateUser(usuario.id);
+      } else {
+        await activateUser(usuario.id);
+      }
+      const ativo = !usuario.ativo;
+      setListaUsuarios((atuais) => atuais.map((item) => item.id === usuario.id ? { ...item, ativo } : item));
+      setSucesso(`Usuário ${ativo ? "ativado" : "desativado"} com sucesso.`);
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Não foi possível desativar o usuário.");
+      setErro(error instanceof Error ? error.message : "Não foi possível alterar o status do usuário.");
+    } finally {
+      setAlterandoStatusId(null);
     }
   }
 
@@ -89,15 +100,21 @@ export default function GerenciarLogins() {
     setErro("");
     setSucesso("");
     setUsuarioEditando(usuario);
+    setNomeAtualizado("");
     setTelefoneAtualizado("");
     setSenhaAtualizada("");
   }
 
   async function salvarAlteracoesUsuario() {
     if (!usuarioEditando) return;
+    const nomeLimpo = nomeAtualizado.trim();
     const telefoneLimpo = telefoneAtualizado.trim();
-    if (!senhaAtualizada && !telefoneLimpo) {
-      setErro("Informe uma nova senha ou um novo telefone.");
+    if (!nomeLimpo && !senhaAtualizada && !telefoneLimpo) {
+      setErro("Informe um novo nome, senha ou telefone.");
+      return;
+    }
+    if (nomeLimpo && !/^[a-zA-ZÀ-ÿ\s]{3,100}$/.test(nomeLimpo)) {
+      setErro("O nome deve ter de 3 a 100 caracteres e conter apenas letras e espaços.");
       return;
     }
     if (senhaAtualizada && senhaAtualizada.length < 6) {
@@ -114,6 +131,7 @@ export default function GerenciarLogins() {
     setSalvando(true);
     try {
       const usuarioAtualizado = await updateUserAccount(usuarioEditando.id, {
+        ...(nomeLimpo ? { nomeAtualizado: nomeLimpo } : {}),
         ...(senhaAtualizada ? { senhaAtualizada } : {}),
         ...(telefoneLimpo ? { telefone: telefoneLimpo } : {}),
       });
@@ -121,6 +139,7 @@ export default function GerenciarLogins() {
         atuais.map((item) => item.id === usuarioAtualizado.id ? usuarioAtualizado : item),
       );
       setUsuarioEditando(null);
+      setNomeAtualizado("");
       setTelefoneAtualizado("");
       setSenhaAtualizada("");
       setSucesso(`Conta de ${usuarioAtualizado.nome} atualizada com sucesso.`);
@@ -143,7 +162,7 @@ export default function GerenciarLogins() {
           <div>
             <h2 className="text-lg font-bold text-gray-900">Controle de usuários</h2>
             <p className="text-sm text-gray-500">
-              O administrador pode cadastrar usuários, alterar senha e telefone e desativar acessos. A API ainda não permite alterar o login ou reativar usuários.
+              O administrador pode cadastrar, editar, ativar e desativar usuários. O login não pode ser alterado pela API atual.
             </p>
           </div>
 
@@ -208,6 +227,15 @@ export default function GerenciarLogins() {
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <input
+                type="text"
+                autoComplete="name"
+                value={nomeAtualizado}
+                onChange={(event) => setNomeAtualizado(event.target.value)}
+                placeholder={`Nome atual: ${usuarioEditando.nome} | Novo nome`}
+                aria-label="Novo nome"
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
+              />
+              <input
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
@@ -226,7 +254,7 @@ export default function GerenciarLogins() {
                 aria-label="Nova senha"
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
               />
-              <p className="text-xs text-gray-500 md:col-span-2">Deixe em branco o campo que não deseja alterar.</p>
+              <p className="text-xs text-gray-500 md:col-span-2">Deixe em branco o campo que não deseja alterar. O nome aceita apenas letras e espaços.</p>
               <div className="md:col-span-2">
                 <Button variant="primary" size="md" onClick={salvarAlteracoesUsuario} disabled={salvando}>
                   {salvando ? "Salvando..." : "Salvar alterações"}
@@ -271,11 +299,14 @@ export default function GerenciarLogins() {
                       <Button
                         variant={usuario.ativo ? "secondary" : "primary"}
                         size="sm"
-                        onClick={() => desativarUsuario(usuario)}
-                        disabled={!usuario.ativo}
-                        title={!usuario.ativo ? "A API ainda não oferece reativação de usuários." : undefined}
+                        onClick={() => alterarStatusUsuario(usuario)}
+                        disabled={alterandoStatusId === usuario.id}
                       >
-                        {usuario.ativo ? "Desativar" : "Inativo"}
+                        {alterandoStatusId === usuario.id
+                          ? "Salvando..."
+                          : usuario.ativo
+                            ? "Desativar"
+                            : "Ativar"}
                       </Button>
                     </div>
                   </td>

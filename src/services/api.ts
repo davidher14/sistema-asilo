@@ -440,6 +440,7 @@ export async function createUser(input: {
 }
 
 export interface AccountUpdateInput {
+  nomeAtualizado?: string;
   senhaAtualizada?: string;
   telefone?: string;
 }
@@ -470,6 +471,13 @@ export async function updateUserAccount(id: string, input: AccountUpdateInput): 
 
 export function deactivateUser(id: string): Promise<void> {
   return request<void>(`/v1/usuarios/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function activateUser(id: string): Promise<void> {
+  if (getSessionRole() !== "ADMIN") {
+    throw new ApiError("Apenas administradores podem ativar usuários.", 403);
+  }
+  return request<void>(`/v1/usuarios/${encodeURIComponent(id)}/ativar`, { method: "PATCH" });
 }
 
 export async function listProducts(situacao?: "ATIVO" | "INATIVO"): Promise<Produto[]> {

@@ -18,7 +18,7 @@ O Swagger documenta `dataValidade` (opcional, no formato `YYYY-MM-DD`) no corpo 
 
 ## Contas de usuário
 
-O painel **Minha conta** permite ao usuário alterar a própria senha e telefone pela rota `PATCH /v1/usuarios/me`. Administradores também podem alterar senha e telefone de usuários ativos pela rota `PATCH /v1/usuarios/{id}`. O login é exibido como somente leitura porque não faz parte dos campos de atualização documentados pela API.
+O painel **Minha conta** permite ao usuário alterar o próprio nome, senha e telefone pela rota `PATCH /v1/usuarios/me`. Administradores também podem alterar nome, senha e telefone de usuários ativos pela rota `PATCH /v1/usuarios/{id}`, além de ativar usuários pela rota `PATCH /v1/usuarios/{id}/ativar`. O login é exibido como somente leitura porque não faz parte dos campos de atualização documentados pela API.
 
 As permissões precisam ser validadas pelo backend: `/me` deve atualizar somente o usuário autenticado, e a atualização por ID deve ser restrita a administradores. Restringir a interface do frontend, por si só, não protege essas operações.
 
